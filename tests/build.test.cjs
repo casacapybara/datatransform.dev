@@ -7,7 +7,7 @@ test('deployment contains only public assets and all local page dependencies exi
   execFileSync(process.execPath, ['scripts/build.mjs']);
   function files(path) { return readdirSync(path, { withFileTypes: true }).flatMap(item => item.isDirectory() ? files(join(path, item.name)) : [join(path, item.name)]); }
   const built = files('dist');
-  assert.equal(built.length, 22);
+  assert.equal(built.length, 23);
   assert.ok(!built.some(file => /private|planning|LAUNCH_PLAN|tests|README|package|logo\.png/.test(file)));
   const root = resolve('dist');
   for (const file of built.filter(file => file.endsWith('.html'))) {
