@@ -35,7 +35,11 @@ Use descriptive page titles, concise tool descriptions, instructions, examples, 
 
 ## Logo
 
-Create a unique logo before launch. The current `dt.` mark is temporary. Prepare a scalable mark, a favicon, and versions that remain readable in both themes.
+Flow was approved on 11 October 2026. Three data rows form a forward arrow, alongside the full `datatransform.dev` wordmark.
+
+Use `assets/brand/logo-light.svg` on light surfaces and `assets/brand/logo-dark.svg` on dark surfaces. The shared theme styles select the visible version. Preserve the aspect ratio; the desktop header size is 266 × 44 pixels. On narrow screens, the theme switch can wrap beneath the logo.
+
+Use `assets/brand/favicon.svg` with the 32-pixel PNG fallback for browser icons. The icon has an opaque teal background so it remains legible independently of the website theme. Keep the home link labelled “DataTransform home”. Do not add a slogan to the logo.
 
 ## Implementation checks
 
