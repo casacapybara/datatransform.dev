@@ -21,7 +21,8 @@ test('deployment contains only public assets and all local page dependencies exi
     }
   }
   const headers = readFileSync('dist/_headers', 'utf8');
-  assert.match(headers, /connect-src 'none'/);
+  assert.match(headers, /connect-src https:\/\/datatransform\.dev\/cdn-cgi\/rum;/);
+  assert.match(headers, /script-src 'self' https:\/\/static\.cloudflareinsights\.com;/);
   assert.match(headers, /worker-src 'self'/);
   assert.match(headers, /X-Robots-Tag: noindex/);
   assert.match(readFileSync('dist/robots.txt', 'utf8'), /Disallow: \//);
