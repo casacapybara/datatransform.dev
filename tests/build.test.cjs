@@ -7,7 +7,7 @@ test('deployment contains only public assets and all local page dependencies exi
   execFileSync(process.execPath, ['scripts/build.mjs'], { env: { ...process.env, SITE_PREVIEW: '1' } });
   function files(path) { return readdirSync(path, { withFileTypes: true }).flatMap(item => item.isDirectory() ? files(join(path, item.name)) : [join(path, item.name)]); }
   const built = files('dist');
-  assert.equal(built.length, 23);
+  assert.equal(built.length, 26);
   assert.ok(!built.some(file => /private|planning|LAUNCH_PLAN|tests|README|package|logo\.png/.test(file)));
   const root = resolve('dist');
   for (const file of built.filter(file => file.endsWith('.html'))) {
@@ -24,6 +24,8 @@ test('deployment contains only public assets and all local page dependencies exi
   assert.match(headers, /connect-src https:\/\/datatransform\.dev\/cdn-cgi\/rum;/);
   assert.match(headers, /script-src 'self' https:\/\/static\.cloudflareinsights\.com;/);
   assert.match(headers, /worker-src 'self'/);
+  assert.match(headers, /img-src 'self' blob:/);
+  assert.match(readFileSync('dist/sitemap.xml', 'utf8'), /https:\/\/datatransform\.dev\/base64-decoder-encoder\//);
   assert.match(headers, /X-Robots-Tag: noindex/);
   assert.match(readFileSync('dist/robots.txt', 'utf8'), /Disallow: \//);
   // Publishing the domain must explicitly opt in to indexing.
