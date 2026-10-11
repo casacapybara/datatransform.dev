@@ -14,9 +14,10 @@ Verify browser-only processing for each tool before claiming that user input sta
 
 ## Development and deployment
 
-Use Node.js 20 or later and Python 3 for the local preview. No package installation is required.
+Use Node.js 22 or later and Python 3 for the basic local preview. Cloudflare Builds uses the version in `.node-version`. Install the pinned deployment tool before using Wrangler:
 
 ```sh
+npm ci
 npm test
 npm run build
 npm run preview
@@ -29,6 +30,14 @@ The build copies an explicit list of public files into `dist/`. Only that direct
 Shared styling lives in `assets/site.css`; the light theme is the default. Theme preference is the only application data saved in browser storage. Hosted text comparison runs in a browser worker using a locally bundled, pinned copy of Google's Diff Match Patch library. Opening `text-diff/index.html` directly also works: file URLs use the same comparison on the page's main thread, with the existing input and algorithm time limits. Large local-file comparisons can briefly pause the interface. Use the local HTTP preview for the complete site and background processing. See `text-diff/vendor/README.md` for provenance.
 
 Analytics hooks currently dispatch allowlisted events within the page. No analytics destination is connected. See `docs/events.md`. Cloudflare deployment and analytics setup remain launch tasks.
+
+## Cloudflare deployment
+
+The Worker configuration in `wrangler.jsonc` serves only `dist/`, with canonical directory URLs and a custom 404 page. No server-side tool processing is configured. Use `npm run build` followed by `npm run preview:worker` to test Cloudflare routing and security headers locally.
+
+Builds default to a preview: pages receive a `noindex` header and `robots.txt` disallows crawling. Set the non-secret build variable `SITE_PREVIEW=0` only when the domain is ready for launch. The canonical URLs continue to point to `https://datatransform.dev/`.
+
+See [Cloudflare publishing instructions](docs/publishing.md) for the GitHub connection, exact dashboard settings and deployment checks.
 
 ## Licence
 

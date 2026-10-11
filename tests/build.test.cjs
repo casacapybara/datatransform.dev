@@ -4,7 +4,7 @@ const { execFileSync } = require('node:child_process');
 const { readdirSync, readFileSync, existsSync } = require('node:fs');
 const { join, resolve, dirname } = require('node:path');
 test('deployment contains only public assets and all local page dependencies exist', () => {
-  execFileSync(process.execPath, ['scripts/build.mjs']);
+  execFileSync(process.execPath, ['scripts/build.mjs'], { env: { ...process.env, SITE_PREVIEW: '1' } });
   function files(path) { return readdirSync(path, { withFileTypes: true }).flatMap(item => item.isDirectory() ? files(join(path, item.name)) : [join(path, item.name)]); }
   const built = files('dist');
   assert.equal(built.length, 23);
@@ -23,4 +23,11 @@ test('deployment contains only public assets and all local page dependencies exi
   const headers = readFileSync('dist/_headers', 'utf8');
   assert.match(headers, /connect-src 'none'/);
   assert.match(headers, /worker-src 'self'/);
+  assert.match(headers, /X-Robots-Tag: noindex/);
+  assert.match(readFileSync('dist/robots.txt', 'utf8'), /Disallow: \//);
+  // Publishing the domain must explicitly opt in to indexing.
+  execFileSync(process.execPath, ['scripts/build.mjs'], { env: { ...process.env, SITE_PREVIEW: '0' } });
+  assert.doesNotMatch(readFileSync('dist/_headers', 'utf8'), /X-Robots-Tag: noindex/);
+  assert.match(readFileSync('dist/robots.txt', 'utf8'), /Allow: \//);
+  execFileSync(process.execPath, ['scripts/build.mjs']);
 });
