@@ -12,6 +12,23 @@ Event hooks are prepared but have no collection destination. They dispatch `data
 | `clipboard_failed` | `side`: `original` or `updated` |
 | `difference_navigated` | `direction`: `previous` or `next` |
 
-Each event also has a fixed tool identifier, `text-diff`. Other metadata is discarded. Inputs, outputs, clipboard contents, filenames, free-text errors, and identifiers are excluded.
+Each Text diff event also has the fixed tool identifier `text-diff`. Other metadata is discarded. Inputs, outputs, clipboard contents, filenames, free-text errors, and identifiers are excluded.
 
 Cloudflare Web Analytics records page visits and performance. Custom tool events need a separately reviewed destination; no custom Cloudflare event API is assumed. Connecting any collection service must preserve static hosting, update privacy information, and leave tool behaviour independent of analytics failures.
+
+## Base64 encoder and decoder
+
+Hooks use the fixed tool identifier `base64-decoder-encoder` and remain within the page, without a collection destination.
+
+| Event | Allowed metadata |
+| --- | --- |
+| `tool_opened` | None |
+| `base64_encoded` | `source`: `file` or `text` |
+| `base64_decoded` | `result`: `text`, `image`, `pdf`, or `binary` |
+| `base64_failed` | `operation`: `decode` or `encode` |
+| `base64_copied` | `operation`: `decode` or `encode` |
+| `base64_downloaded` | `operation`: `decode` or `encode` |
+| `input_cleared` | `side`: `decode` or `encode` |
+| `clipboard_pasted` | `side`: `decode` |
+
+Files, filenames, input text, decoded bytes and clipboard contents are excluded. Cloudflare's automatic page analytics is separate from these hooks.

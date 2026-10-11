@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Base64 encoder and decoder | DataTransform</title>
+<meta name="description" content="Encode text and files as Base64, or decode Base64 into text, images and downloadable files. Includes URL-safe output and browser-only processing.">
+<link rel="canonical" href="https://datatransform.dev/base64-decoder-encoder/">
+<meta property="og:title" content="Base64 encoder and decoder | DataTransform"><meta property="og:description" content="Encode and decode Base64 text and files in your browser."><meta property="og:type" content="website"><meta property="og:url" content="https://datatransform.dev/base64-decoder-encoder/">
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/brand/favicon-32.png"><link rel="icon" type="image/svg+xml" href="../assets/brand/favicon.svg">
+<script src="../assets/theme.js"></script><link rel="stylesheet" href="../assets/site.css">
+<script src="../assets/events.js" defer></script><script src="./model.js" defer></script><script src="./app.js" defer></script>
+</head><body><a class="skip-link" href="#main">Skip to tool</a>
+  <header class="site-header"><div class="header-inner"><a class="brand" href="../" aria-label="DataTransform home"><img class="brand-logo brand-logo-light" src="../assets/brand/logo-light.svg" alt="datatransform.dev" width="266" height="44"><img class="brand-logo brand-logo-dark" src="../assets/brand/logo-dark.svg" alt="datatransform.dev" width="266" height="44"></a><button id="theme-toggle" class="theme-toggle" type="button" role="switch" aria-checked="false"><span>Dark mode</span><span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span></button></div></header>
+  <main id="main">
+    <aside class="privacy-callout" aria-label="Privacy">
+      <svg class="privacy-callout-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="none" aria-hidden="true" focusable="false"><path d="M10 14V10a6 6 0 0 1 12 0v4" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><rect x="6" y="14" width="20" height="15" rx="4" fill="currentColor" fill-opacity=".12" stroke="currentColor" stroke-width="2.4"/><circle cx="16" cy="20" r="2" fill="currentColor"/><path d="M16 21v3" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+      <p>All our tools are privacy first - all tool data is processed ONLY in your web browser. <a href="../privacy/">Read more.</a></p>
+    </aside>
+
+<div class="page-heading"><h1>Base64 encoder and decoder</h1></div>
+<noscript><p class="panel noscript">Enable JavaScript to encode or decode Base64. Processing runs on your device.</p></noscript>
+<p id="base64-limits" class="input-help">Up to 5 MiB of text or file data. Base64 input can contain up to 8 MiB of characters, including whitespace.</p>
+<div class="actions base64-modes" role="group" aria-label="Conversion mode">
+<button type="button" class="button" data-group="mode" data-panel="decode" aria-pressed="true" aria-controls="decode">Decode Base64</button>
+<button type="button" class="button" data-group="mode" data-panel="encode" aria-pressed="false" aria-controls="encode">Encode to Base64</button></div>
+<section id="decode" aria-label="Decode Base64">
+<div class="inputs base64-grid"><section class="panel" aria-labelledby="decode-input-heading">
+<div class="input-heading"><h2 id="decode-input-heading"><label for="base64Input">Base64 input</label></h2><div class="actions"><button id="pasteDecode" type="button" class="button small" hidden>Paste</button><button id="clearDecode" type="button" class="button small">Clear</button></div></div>
+<textarea id="base64Input" spellcheck="false" autocomplete="off" autocapitalize="off" aria-describedby="base64-limits decode-help" placeholder="Paste Base64 or a Base64 data URL"></textarea>
+<p id="decode-help" class="input-help">Whitespace is ignored. Standard and URL-safe Base64 are accepted, with or without padding.</p>
+<button id="decodeBtn" type="button" class="button primary">Decode</button>
+<p id="decodeStatus" class="message" role="status" aria-live="polite">Enter Base64 and select Decode.</p>
+</section><section class="panel" aria-labelledby="decode-result-heading">
+<h2 id="decode-result-heading">Decoded result</h2>
+<dl class="base64-meta"><div><dt>Detected type</dt><dd id="decodedType">—</dd></div><div><dt>Decoded size</dt><dd id="decodedSize">—</dd></div></dl>
+<label for="decodedFilename">Download filename</label><input id="decodedFilename" class="base64-filename" value="decoded.bin" maxlength="180" autocomplete="off">
+<div id="decodedPreview" class="base64-preview" tabindex="0" role="region" aria-label="Decoded preview">Decoded text or an image preview will appear here. PDFs and other files can be downloaded.</div>
+<div class="actions"><button id="copyDecodedText" type="button" class="button" hidden>Copy text</button><button id="downloadDecoded" type="button" class="button" disabled>Download file</button></div>
+</section></div></section>
+<section id="encode" aria-label="Encode to Base64" hidden>
+<div class="inputs base64-grid"><section class="panel" aria-labelledby="encode-input-heading">
+<div class="input-heading"><h2 id="encode-input-heading">Source</h2><button id="clearEncode" type="button" class="button small">Clear</button></div>
+<div class="actions base64-modes" role="group" aria-label="Source type"><button type="button" class="button" data-group="source" data-source="file" aria-pressed="true">File</button><button type="button" class="button" data-group="source" data-source="text" aria-pressed="false">Text</button></div>
+<div id="fileSource"><div id="dropzone" class="base64-dropzone"><label for="fileInput">Choose a file or drop it here</label><input type="file" id="fileInput" aria-describedby="base64-limits"></div><p id="fileInfo" class="input-help" role="status">No file selected.</p></div>
+<div id="textSource" hidden><label for="plainTextInput">Text to encode</label><textarea id="plainTextInput" spellcheck="false" autocomplete="off" autocapitalize="off" aria-describedby="base64-limits" placeholder="Enter text to encode as UTF-8"></textarea></div>
+<button id="encodeBtn" type="button" class="button primary">Encode</button><p id="encodeStatus" class="message" role="status" aria-live="polite">Choose a file or enter text, then select Encode.</p>
+</section><section class="panel" aria-labelledby="encode-result-heading">
+<h2 id="encode-result-heading"><label for="base64Output">Base64 output</label></h2>
+<div class="actions base64-modes" role="group" aria-label="Output format"><button type="button" class="button" data-group="output" data-output="raw" aria-pressed="true">Raw Base64</button><button type="button" class="button" data-group="output" data-output="urlsafe" aria-pressed="false">URL-safe Base64</button><button type="button" class="button" data-group="output" data-output="dataurl" aria-pressed="false">Data URL</button></div>
+<textarea id="base64Output" readonly spellcheck="false" placeholder="Encoded Base64 will appear here"></textarea>
+<dl class="base64-meta"><div><dt>Source type</dt><dd id="encodedType">—</dd></div><div><dt>Output length</dt><dd id="encodedLength">—</dd></div></dl>
+<div class="actions"><button id="copyEncoded" type="button" class="button" disabled>Copy</button><button id="downloadEncoded" type="button" class="button" disabled>Download .txt</button></div>
+</section></div></section>
+<div class="help-columns"><section aria-labelledby="base64-how"><h2 id="base64-how">How to use this tool</h2>
+<p>To decode, paste Base64 into the input and select Decode. Text and PNG or JPEG images have a preview. Use Download file to save the decoded bytes, or Copy text for UTF-8 text.</p>
+<p>To encode, select Encode to Base64, choose a file or switch to Text, and select Encode. Choose Raw Base64, URL-safe Base64 or Data URL, then copy or download the output.</p>
+<h3>When to use it</h3><p>Read an encoded value from an API response, create a data URL for a small image, or convert a file to Base64 for a system that accepts text. Base64 represents bytes using text characters; it is not encryption and does not protect a secret.</p>
+<h3>Example</h3><p>The text <code>Hello</code> encodes to <code>SGVsbG8=</code>. Decoding that value returns <code>Hello</code>. URL-safe output uses <code>-</code> and <code>_</code> in place of <code>+</code> and <code>/</code> and omits trailing padding.</p></section>
+<section aria-labelledby="base64-privacy"><h2 id="base64-privacy">Privacy and data handling</h2><p>Text, selected files, clipboard contents and results stay in your browser. The tool does not upload them, save them in browser storage or add them to a URL. File selection and dropping a file read a local copy. Clipboard access happens only when you select Paste or Copy.</p><p>The site stores your theme choice and uses Cloudflare Web Analytics for page visits and loading performance. Tool data is excluded. See the <a href="../privacy/">privacy page</a> for details.</p>
+<h3>Formats and limits</h3><p>Text encoding uses UTF-8. The decoder accepts standard Base64, URL-safe Base64 and Base64 data URLs. Missing padding is accepted; malformed padding and invalid characters produce an error.</p><p>PNG, JPEG and PDF signatures identify those file types. Other data URLs supply a media type; raw input is checked for UTF-8 text, otherwise treated as binary. A media type is a hint, not a file validation. PDFs are download-only. Unrecognised files and text that is not valid UTF-8 have no preview, but their decoded bytes can be downloaded.</p><p>Each conversion is limited to 5 MiB of data, and Base64 input to 8 MiB of characters including whitespace. Text previews show at most 200,000 characters; copying and downloading preserve the full result. Encoding adds about one third to the data size. Browser text fields normalise line endings; file encoding preserves the original bytes.</p><p>Editing an input clears its previous result. Clear in the encoder removes the selected file, text and output. Use the format expected by the receiving system; some systems require padding or a particular media type.</p></section></div>
+</main>
+  <footer class="site-footer"><div class="footer-inner"><span>Made with 💚 in London</span><nav aria-label="Footer"><a href="../about/">About</a><a href="../privacy/">Privacy</a><a href="../contact/">Contact</a><a href="../terms/">Terms</a><a href="https://github.com/casacapybara/datatransform.dev/tree/main/base64-decoder-encoder" rel="noreferrer">Source</a></nav></div></footer>
+</body></html>

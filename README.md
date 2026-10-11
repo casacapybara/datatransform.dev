@@ -23,7 +23,7 @@ npm run build
 npm run preview
 ```
 
-Open `http://127.0.0.1:8765/`. Text diff is at `/text-diff/`. Stop the preview with Ctrl+C.
+Open `http://127.0.0.1:8765/`. Text diff is at `/text-diff/`; the Base64 tool is at `/base64-decoder-encoder/`. Stop the preview with Ctrl+C.
 
 The build copies an explicit list of public files into `dist/`. Only that directory should be deployed. Private plans and original tool copies are excluded from Git and the build. The local preview does not apply Cloudflare's `_headers`; verify those headers on a Cloudflare preview before launch.
 
