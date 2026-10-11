@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Text diff — Compare text in your browser | DataTransform</title>
+  <meta name="description" content="Compare two versions of text side by side. Highlight added and removed content, navigate changes, and keep your inputs in your browser.">
+  <link rel="canonical" href="https://datatransform.dev/text-diff/">
+  <meta property="og:title" content="Text diff | DataTransform"><meta property="og:description" content="Compare text side by side, with browser-only processing."><meta property="og:type" content="website"><meta property="og:url" content="https://datatransform.dev/text-diff/">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <script src="../assets/theme.js"></script><link rel="stylesheet" href="../assets/site.css">
+  <script src="../assets/events.js" defer></script><script src="./app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to tool</a>
+  <header class="site-header"><div class="header-inner"><a class="brand" href="../" aria-label="DataTransform home"><span class="brand-mark" aria-hidden="true">dt.</span><span>datatransform<span class="brand-domain">.dev</span></span></a><button id="theme-toggle" class="theme-toggle" type="button" role="switch" aria-checked="false"><span>Dark mode</span><span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span></button></div></header>
+  <main id="main">
+    <div class="page-heading"><h1>Text diff</h1><p>Compare two versions of text and view the additions and deletions side by side.</p><p class="privacy-note">Your inputs are processed in this browser.</p></div>
+    <noscript><p class="panel noscript">Enable JavaScript to compare text. The comparison runs on your device.</p></noscript>
+    <section class="panel" aria-label="Text comparison inputs">
+      <p id="input-help" class="input-help">Up to 200,000 characters and 5,000 lines per input. Spaces and case are compared as entered. Browser text inputs normalise line endings.</p>
+      <div class="inputs">
+        <div><div class="input-heading"><label for="original">Original text</label><div class="actions"><button type="button" class="button small" data-clear="original" aria-label="Clear original text">Clear</button><button type="button" class="button small" data-paste="original" aria-label="Paste into original text" hidden>Paste</button></div></div><textarea id="original" aria-describedby="input-help" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="Paste the original version here"></textarea></div>
+        <div><div class="input-heading"><label for="updated">Updated text</label><div class="actions"><button type="button" class="button small" data-clear="updated" aria-label="Clear updated text">Clear</button><button type="button" class="button small" data-paste="updated" aria-label="Paste into updated text" hidden>Paste</button></div></div><textarea id="updated" aria-describedby="input-help" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="Paste the updated version here"></textarea></div>
+      </div>
+      <div class="actions"><button id="compare" class="button primary" type="button">Compare text</button></div><p id="message" class="message" role="status" aria-live="polite" aria-atomic="true"></p>
+    </section>
+    <section id="results" class="results" aria-labelledby="results-heading" hidden>
+      <div class="result-toolbar"><h2 id="results-heading">Comparison</h2><div class="actions"><button id="previous" class="button" type="button" disabled>Previous change</button><span id="diff-status" role="status" aria-live="polite" aria-atomic="true"></span><button id="next" class="button" type="button" disabled>Next change</button></div></div>
+      <div class="legend" aria-label="Change indicators"><span class="removed">− Removed from the original</span><span class="added">+ Added in the updated version</span><span>↵ Line break</span></div><div class="diff-labels" aria-hidden="true"><span>Original</span><span>Updated</span></div><div id="diff-output" class="diff-output" role="region" aria-label="Comparison results; scroll to view all lines" tabindex="0"></div>
+    </section>
+    <div class="help-columns">
+      <section aria-labelledby="how-heading"><h2 id="how-heading">How to use text diff</h2><ol><li>Paste the first version into Original text and the second version into Updated text.</li><li>Select Compare text. Deletions appear on the left and additions on the right.</li><li>Use Previous change and Next change to move between changed rows. Each column shows its own source line numbers.</li></ol><p>You can compare an empty input with text to view all additions or deletions. Editing either input clears the previous result so you can run a new comparison.</p><h3>When to use it</h3><p>Check edits to an email or article, compare two sets of notes, or review changes to a plain-text configuration file. For code, JSON, and CSV, this tool compares the text rather than interpreting its structure.</p><h3>Example</h3><p>If the original contains <code>Status: Draft</code> and the updated version contains <code>Status: Reviewed</code>, the comparison marks the changed words. Inserted and deleted lines are aligned with blank spaces in the opposite column.</p></section>
+      <section aria-labelledby="data-heading"><h2 id="data-heading">Privacy and data handling</h2><p>Your text and comparison results stay in this browser. The tool does not upload them, save them to local storage, or include them in the page URL.</p><p>The Paste buttons read your clipboard only when you select them. Your browser may request permission. You can also paste directly into either input.</p><p>The site saves your light or dark theme choice on this device. Your browser may restore form fields when you revisit a page; clearing an input removes its current contents. See the <a href="../privacy/">privacy page</a> for site-wide details.</p><h3>Limitations</h3><p>The comparison is case-sensitive and includes whitespace. Line breaks are shown with ↵. Browser text inputs normalise Windows and Unix line endings, so this tool does not distinguish those formats. Some Unicode characters use multiple code units, which can affect character-level highlights.</p><p>Inputs are limited to 200,000 characters and 5,000 lines each to protect browser performance. Complex comparisons use a time limit, so the highlighting may group a large change rather than show the smallest possible edit. Moved text is shown as a deletion and an addition.</p><h3>Comparison library</h3><p>This tool uses an unmodified copy of Google's <a href="https://github.com/google/diff-match-patch" rel="noreferrer">Diff Match Patch</a> library. Google archived the project in 2024. The library is included locally under the <a href="./vendor/LICENSE.txt">Apache 2.0 licence</a>; it is not loaded from a third-party server.</p></section>
+    </div>
+  </main>
+  <footer class="site-footer"><div class="footer-inner"><span>Made with 💚 in London</span><nav aria-label="Footer"><a href="../about/">About</a><a href="../privacy/">Privacy</a><a href="../contact/">Contact</a><a href="../terms/">Terms</a><a href="https://github.com/casacapybara/datatransform.dev/tree/main/text-diff" rel="noreferrer">Source</a></nav></div></footer>
+</body></html>

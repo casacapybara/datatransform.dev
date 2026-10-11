@@ -14,6 +14,20 @@ Verify browser-only processing for each tool before claiming that user input sta
 
 ## Development and deployment
 
-The shared design and first tool are still to be selected. Local preview, build, and deployment instructions will be added when the site implementation exists.
+Use Node.js 20 or later and Python 3 for the local preview. No package installation is required.
+
+```sh
+npm test
+npm run build
+npm run preview
+```
+
+Open `http://127.0.0.1:8765/`. Text diff is at `/text-diff/`. Stop the preview with Ctrl+C.
+
+The build copies an explicit list of public files into `dist/`. Only that directory should be deployed. Private plans and original tool copies are excluded from Git and the build. The local preview does not apply Cloudflare's `_headers`; verify those headers on a Cloudflare preview before launch.
+
+Shared styling lives in `assets/site.css`; the light theme is the default. Theme preference is the only application data saved in browser storage. The text comparison runs in a browser worker using a locally bundled, pinned copy of Google's Diff Match Patch library. See `text-diff/vendor/README.md` for provenance.
+
+Analytics hooks currently dispatch allowlisted events within the page. No analytics destination is connected. See `docs/events.md`. Cloudflare deployment and analytics setup remain launch tasks.
 
 Source licensing is still to be decided. Third-party components retain their own licences.

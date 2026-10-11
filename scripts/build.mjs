@@ -1,0 +1,38 @@
+import { cp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const dist = resolve(root, 'dist');
+await rm(dist, { recursive: true, force: true });
+await mkdir(dist, { recursive: true });
+// Explicit allowlist: never copy the repository or a source directory wholesale.
+const publicFiles = ['index.html', 'assets/site.css', 'assets/theme.js', 'assets/events.js', 'text-diff/index.html', 'text-diff/app.js', 'text-diff/diff-worker.js', 'text-diff/diff-model.js', 'text-diff/vendor/diff-match-patch.js', 'text-diff/vendor/LICENSE.txt'];
+for (const file of publicFiles) {
+  const target = resolve(dist, file);
+  await mkdir(dirname(target), { recursive: true });
+  await cp(resolve(root, file), target);
+}
+const pages = {
+  about: { title: 'About DataTransform', body: '<p>DataTransform is a collection of browser tools for working with text and data. The first tool compares two versions of text.</p><h2>Browser processing</h2><p>Tools process your inputs on your device. Each tool explains its data handling and limitations alongside its controls.</p><h2>Source code</h2><p>The site source is available on <a href="https://github.com/casacapybara/datatransform.dev" rel="noreferrer">GitHub</a>. Third-party code retains its own licence. The source licence for our own code is still to be chosen.</p>' },
+  privacy: { title: 'Privacy', body: '<p>Text diff processes inputs and results in your browser. The application does not send them to a server, save them in browser storage, or include them in URLs.</p><h2>Browser storage and clipboard</h2><p>The site stores your theme preference under <code>datatransform-theme</code> in local storage. The value is light or dark. You can remove it by clearing this site\'s browser storage.</p><p>The Paste buttons read the clipboard only after you select them. Your browser may require permission. Browser features or extensions may separately retain or process form input; the application does not control those features.</p><h2>Hosting and analytics</h2><p>Cloudflare hosting and visitor analytics are planned but have not been connected to this version. No analytics transport or advertising code is installed. Prepared tool-event hooks remain within the page and contain only predefined action names and categories.</p><p>Before hosting or analytics is enabled, this page will be updated to describe the services in use. Tool inputs and results will remain excluded from analytics.</p><h2>Questions</h2><p>Use the <a href="../contact/">contact page</a> to report a concern. Do not include private input data in a public report.</p>' },
+  contact: { title: 'Contact', body: '<p>Report a bug or suggest a tool through <a href="https://github.com/casacapybara/datatransform.dev/issues" rel="noreferrer">GitHub Issues</a>.</p><p>Issues are public. Describe what happened using a small, invented example rather than private text, credentials, or personal information.</p>' },
+  terms: { title: 'Using these tools', body: '<p>These tools are provided for general text and data tasks. Check the results before relying on them, particularly when comparing code, configuration, or important documents.</p><h2>Limitations</h2><p>Each tool lists its input limits and comparison behaviour. Text diff highlights textual changes; it does not validate the meaning or correctness of the text.</p><h2>Source and third-party code</h2><p>Third-party software is provided under its stated licence. The Diff Match Patch library uses the Apache 2.0 licence. The public repository provides source for inspection; the licence for our own code is still to be decided.</p>' },
+};
+function page(title, slug, body) {
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${title} | DataTransform</title><meta name="description" content="${title}: information about DataTransform browser tools."><link rel="canonical" href="https://datatransform.dev/${slug}/"><script src="../assets/theme.js"></script><link rel="stylesheet" href="../assets/site.css"></head><body><a class="skip-link" href="#main">Skip to content</a><header class="site-header"><div class="header-inner"><a class="brand" href="../" aria-label="DataTransform home"><span class="brand-mark" aria-hidden="true">dt.</span><span>datatransform<span class="brand-domain">.dev</span></span></a><button id="theme-toggle" class="theme-toggle" type="button" role="switch" aria-checked="false"><span>Dark mode</span><span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span></button></div></header><main id="main"><article class="prose"><h1>${title}</h1>${body}</article></main><footer class="site-footer"><div class="footer-inner"><span>Made with 💚 in London</span><nav aria-label="Footer"><a href="../about/">About</a><a href="../privacy/">Privacy</a><a href="../contact/">Contact</a><a href="../terms/">Terms</a><a href="https://github.com/casacapybara/datatransform.dev" rel="noreferrer">Source</a></nav></div></footer></body></html>`;
+}
+for (const [slug, data] of Object.entries(pages)) {
+  await mkdir(resolve(dist, slug));
+  await writeFile(resolve(dist, slug, 'index.html'), page(data.title, slug, data.body));
+}
+await writeFile(resolve(dist, '404.html'), '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Page not found | DataTransform</title><link rel="stylesheet" href="/assets/site.css"><script src="/assets/theme.js"></script></head><body><main><h1>Page not found</h1><p>The address does not match a page on this site.</p><p><a href="/">Return to the tools</a></p></main></body></html>');
+await writeFile(resolve(dist, 'robots.txt'), 'User-agent: *\nAllow: /\nSitemap: https://datatransform.dev/sitemap.xml\n');
+const urls = ['', 'text-diff/', ...Object.keys(pages).map((slug) => `${slug}/`)];
+await writeFile(resolve(dist, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.map((path) => `<url><loc>https://datatransform.dev/${path}</loc></url>`).join('')}</urlset>\n`);
+await writeFile(resolve(dist, '_headers'), `/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; worker-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+`);
+console.log(`Built ${publicFiles.length} source assets plus supporting pages in dist/.`);
