@@ -1,0 +1,28 @@
+# Local credentials and configuration
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+.aws/
+.codex/
+.agents/
+*.pem
+*.key
+
+# Local dependencies and generated files
+node_modules/
+dist/
+.wrangler/
+coverage/
+*.log
+
+# Local planning and private sample data
+LAUNCH_PLAN.md
+docs/planning/
+private/
+
+# Operating system files
+.DS_Store
+Thumbs.db
