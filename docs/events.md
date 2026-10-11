@@ -32,3 +32,9 @@ Hooks use the fixed tool identifier `base64-decoder-encoder` and remain within t
 | `clipboard_pasted` | `side`: `decode` |
 
 Files, filenames, input text, decoded bytes and clipboard contents are excluded. Cloudflare's automatic page analytics is separate from these hooks.
+
+## Bitwise flag decoder
+
+Hooks use the fixed tool identifier `bitwise-flag-decoder`. Events remain within the page and have no collection destination.
+
+The events `tool_opened`, `bitwise_failed`, `bitwise_cleared`, `bitwise_names_applied`, `bitwise_configuration_saved`, `bitwise_configuration_loaded`, and `bitwise_copied` have no allowed metadata. Values, names, widths, pasted rows, configuration contents, filenames and error text are excluded.

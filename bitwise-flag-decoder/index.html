@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bitwise flag decoder | DataTransform</title>
+<meta name="description" content="Decode bitwise flags or build a bitmask. Name flags individually or paste spreadsheet rows, and save or load reusable JSON configurations.">
+<link rel="canonical" href="https://datatransform.dev/bitwise-flag-decoder/">
+<meta property="og:title" content="Bitwise flag decoder | DataTransform"><meta property="og:description" content="Decode bitmasks, name flags and save reusable configurations in your browser."><meta property="og:type" content="website"><meta property="og:url" content="https://datatransform.dev/bitwise-flag-decoder/">
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/brand/favicon-32.png"><link rel="icon" type="image/svg+xml" href="../assets/brand/favicon.svg">
+<script src="../assets/theme.js"></script><link rel="stylesheet" href="../assets/site.css">
+<script src="../assets/events.js" defer></script><script src="./model.js" defer></script><script src="./app.js" defer></script>
+</head><body><a class="skip-link" href="#main">Skip to tool</a>
+  <header class="site-header"><div class="header-inner"><a class="brand" href="../" aria-label="DataTransform home"><img class="brand-logo brand-logo-light" src="../assets/brand/logo-light.svg" alt="datatransform.dev" width="266" height="44"><img class="brand-logo brand-logo-dark" src="../assets/brand/logo-dark.svg" alt="datatransform.dev" width="266" height="44"></a><button id="theme-toggle" class="theme-toggle" type="button" role="switch" aria-checked="false"><span>Dark mode</span><span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span></button></div></header>
+  <main id="main">
+    <aside class="privacy-callout" aria-label="Privacy">
+      <svg class="privacy-callout-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="none" aria-hidden="true" focusable="false"><path d="M10 14V10a6 6 0 0 1 12 0v4" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><rect x="6" y="14" width="20" height="15" rx="4" fill="currentColor" fill-opacity=".12" stroke="currentColor" stroke-width="2.4"/><circle cx="16" cy="20" r="2" fill="currentColor"/><path d="M16 21v3" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+      <p>All our tools are privacy first - all tool data is processed ONLY in your web browser. <a href="../privacy/">Read more.</a></p>
+    </aside>
+
+<div class="page-heading"><h1>Bitwise flag decoder</h1></div>
+<noscript><p class="panel noscript">Enable JavaScript to decode flags. Processing runs on your device.</p></noscript>
+<div class="inputs flag-panels">
+<section class="panel" aria-labelledby="value-heading">
+<div class="input-heading"><h2 id="value-heading"><label for="inputValue">Bitmask value</label></h2><button id="clearValue" class="button small" type="button">Clear</button></div>
+<input id="inputValue" class="flag-control flag-value" type="text" value="0" maxlength="512" autocomplete="off" spellcheck="false" aria-describedby="value-help decodeStatus" placeholder="e.g. 11, 0xFF or 0b1011">
+<div class="actions flag-width"><label for="bitWidth">Width</label><select id="bitWidth" class="flag-control"><option value="8">8 bits</option><option value="16">16 bits</option><option value="32">32 bits</option><option value="64" selected>64 bits</option><option value="128">128 bits</option></select></div>
+<p id="value-help" class="input-help">Enter a non-negative whole number. Use 0x for hex, 0b for binary or 0o for octal. Tick flags below to build a value.</p>
+<p id="decodeStatus" class="message" role="status" aria-live="polite"></p>
+</section>
+<section class="panel" aria-labelledby="result-heading">
+<div class="input-heading"><h2 id="result-heading">Decoded result</h2><button id="copyResult" class="button small" type="button">Copy result</button></div>
+<dl class="flag-result"><div><dt>Decimal</dt><dd id="resultDecimal"></dd></div><div><dt>Hex</dt><dd id="resultHex"></dd></div><div><dt>Binary</dt><dd id="resultBinary"></dd></div></dl>
+<h3 id="enabledCount">Enabled bits</h3><ul id="enabledFlags" class="flag-list" aria-labelledby="enabledCount"></ul><p id="emptyFlags"></p>
+<p id="copyStatus" class="message" role="status" aria-live="polite"></p>
+</section></div>
+<section class="panel flag-config" aria-labelledby="flags-heading">
+<div class="input-heading"><h2 id="flags-heading">Flag names</h2><div class="actions"><button id="clearNames" class="button small" type="button">Clear names</button><button id="downloadConfig" class="button small" type="button">Download configuration</button></div></div>
+<div class="flag-config-controls"><div><label for="configName">Configuration name (optional)</label><input id="configName" class="flag-control" type="text" maxlength="100" placeholder="e.g. API permissions" autocomplete="off"></div><div><label for="configFile">Load configuration (.json)</label><input id="configFile" class="flag-control" type="file" accept=".json,application/json" aria-describedby="config-help configStatus"></div></div>
+<p id="config-help" class="input-help">Load replaces the current names and width, keeping your input value. Download your configuration before loading another if you want to keep your names.</p>
+<p id="configStatus" class="message" role="status" aria-live="polite"></p>
+<details id="bulkEditor" class="flag-bulk"><summary>Paste names from a spreadsheet</summary>
+<p class="input-help">Copy cells without column headers. Paste one name per row, or two columns containing bit numbers and names. You can also paste a column into a name cell below to open this preview.</p>
+<div class="actions flag-paste-controls"><label for="pasteFormat">Columns</label><select id="pasteFormat" class="flag-control"><option value="names">Names only</option><option value="bits">Bit number + name</option></select><span id="startBitGroup"><label for="startBit">Starting bit</label> <input id="startBit" class="flag-control" type="number" min="0" max="63" value="0" step="1"></span></div>
+<label for="bulkNames">Spreadsheet rows</label><textarea id="bulkNames" rows="5" maxlength="65536" spellcheck="false" autocomplete="off" placeholder="Read&#10;Write&#10;Execute" aria-describedby="bulkStatus"></textarea>
+<p id="bulkStatus" class="message" role="status" aria-live="polite"></p><pre id="bulkPreview" class="flag-preview" aria-label="Flag name preview"></pre>
+<button id="applyNames" class="button primary" type="button" disabled>Apply names</button>
+</details>
+<div class="input-heading flag-table-heading"><p id="tableRange" class="input-help"></p><div class="actions"><label for="tableFilter">Show</label><select id="tableFilter" class="flag-control"><option value="all">All bits</option><option value="enabled">Enabled bits</option></select></div></div>
+<div class="flag-table-wrapper" tabindex="0" role="region" aria-label="Editable flags table. Scroll to see all columns."><table class="flag-table"><caption class="sr-only">Select enabled bits and edit their optional names.</caption><thead><tr><th scope="col">Enabled</th><th scope="col">Bit</th><th scope="col">Decimal value</th><th scope="col">Hex value</th><th scope="col">Flag name</th></tr></thead><tbody id="flagsTableBody"></tbody></table><p id="emptyTable" hidden>No enabled bits to display.</p></div>
+</section>
+<div class="help-columns"><section aria-labelledby="flag-how"><h2 id="flag-how">How to use this tool</h2>
+<p>Enter a bitmask to see which bits are enabled. Decimal, hexadecimal, binary and octal inputs are accepted. The default width is 64 bits, numbered 0–63. Choose another width for your data.</p>
+<p>Enter names in the table to label the result. Use the checkboxes to build a mask, or filter the table to enabled bits. Unnamed enabled bits still appear in the result.</p>
+<p>To paste names, copy a column from your spreadsheet and open “Paste names from a spreadsheet”. Choose the starting bit, check the preview, then select Apply names. For sparse definitions, copy two columns containing bit numbers and names and choose “Bit number + name”. Blank names clear labels; other labels stay as they are.</p>
+<p>Download configuration saves your names, width and optional configuration name as JSON. Use Load configuration to restore them later or on another device. The decoded value is excluded from the file.</p>
+<h3>Example</h3><p>A value of <code>11</code> (<code>0b1011</code>) enables bits 0, 1 and 3, with values 1, 2 and 8. If you name those bits Read, Write and Admin, those labels appear in the result.</p>
+<h3>When to use it</h3><p>Inspect permissions from an API, decode status flags in a log, or build a mask from individual options. Flag names depend on the system that produced the value; the tool cannot infer them.</p></section>
+<section aria-labelledby="flag-privacy"><h2 id="flag-privacy">Privacy and data handling</h2>
+<p>Values, flag names, pasted rows, configuration files and results are processed in your browser. The tool does not upload them, save them in browser storage or include them in URLs. Download saves a JSON file to your device; loading reads the file you select.</p>
+<p>Copy result writes to your clipboard only when you select it. Spreadsheet paste uses your normal paste action. The site stores your theme preference and uses Cloudflare Web Analytics for page visits and loading performance. Tool data is excluded. See the <a href="../privacy/">privacy page</a>.</p>
+<h3>Formats and limits</h3><p>Widths of 8, 16, 32, 64 and 128 bits are supported. Arithmetic preserves exact integer values across that range. Negative values, fractions, composite flag definitions and signed interpretations are unsupported. Values beyond the selected width produce an error; bits are never silently discarded.</p>
+<p>Flag names can contain up to 200 characters, including Unicode. Configuration names can contain up to 100 characters. Configuration files are limited to 256 KiB. Pasted rows are limited to 65,536 characters and one row per available bit. Spreadsheet rows use tabs between columns; quoted cells and embedded line breaks are supported. Omit headers.</p>
+<p>Configuration files use version 1, with name, bitWidth and a flags array of bit/name pairs. Bits must be unique and within the saved width. A malformed file leaves the current configuration intact. Loading a narrower configuration keeps your input and reports an error if it exceeds that width.</p>
+<p>To reduce the width with the selector, first clear any names outside the new range. Reloading or closing the page clears tool data. Download a configuration before leaving if you want to reuse your names. A browser with support for large integers is required; clipboard access may require permission.</p></section></div>
+</main>
+  <footer class="site-footer"><div class="footer-inner"><span>Made with 💚 in London</span><nav aria-label="Footer"><a href="../about/">About</a><a href="../privacy/">Privacy</a><a href="../contact/">Contact</a><a href="../terms/">Terms</a><a href="https://github.com/casacapybara/datatransform.dev/tree/main/bitwise-flag-decoder" rel="noreferrer">Source</a></nav></div></footer>
+</body></html>

@@ -8,6 +8,7 @@
     ['base64_encoded', ['source']], ['base64_decoded', ['result']],
     ['base64_failed', ['operation']], ['base64_copied', ['operation']],
     ['base64_downloaded', ['operation']],
+    ...['bitwise_failed', 'bitwise_cleared', 'bitwise_names_applied', 'bitwise_configuration_saved', 'bitwise_configuration_loaded', 'bitwise_copied'].map(name => [name, []]),
   ]);
   const values = {
     result: ['identical', 'different', 'text', 'image', 'pdf', 'binary'], reason: ['input_limit', 'unavailable', 'processing'],
@@ -18,7 +19,7 @@
   // There is no network transport, queue, log, identifier, or input capture here.
   globalThis.DataTransformEvents = Object.freeze({
     emit(name, metadata = {}, tool = 'text-diff') {
-      if (!allowed.has(name) || !['text-diff', 'base64-decoder-encoder'].includes(tool)) return;
+      if (!allowed.has(name) || !['text-diff', 'base64-decoder-encoder', 'bitwise-flag-decoder'].includes(tool)) return;
       const detail = { name, tool };
       for (const key of allowed.get(name)) {
         if (values[key].includes(metadata[key])) detail[key] = metadata[key];

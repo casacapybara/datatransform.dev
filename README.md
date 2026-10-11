@@ -23,11 +23,13 @@ npm run build
 npm run preview
 ```
 
-Open `http://127.0.0.1:8765/`. Text diff is at `/text-diff/`; the Base64 tool is at `/base64-decoder-encoder/`. Stop the preview with Ctrl+C.
+Open `http://127.0.0.1:8765/`. Text diff is at `/text-diff/`; the Base64 tool is at `/base64-decoder-encoder/`; the bitwise flag decoder is at `/bitwise-flag-decoder/`. Stop the preview with Ctrl+C.
 
 The build copies an explicit list of public files into `dist/`. Only that directory should be deployed. Private plans and original tool copies are excluded from Git and the build. The local preview does not apply Cloudflare's `_headers`; verify those headers on a Cloudflare preview before launch.
 
 Shared styling lives in `assets/site.css`; the light theme is the default. Theme preference is the only application data saved in browser storage. Hosted text comparison runs in a browser worker using a locally bundled, pinned copy of Google's Diff Match Patch library. Opening `text-diff/index.html` directly also works: file URLs use the same comparison on the page's main thread, with the existing input and algorithm time limits. Large local-file comparisons can briefly pause the interface. Use the local HTTP preview for the complete site and background processing. See `text-diff/vendor/README.md` for provenance.
+
+The bitwise flag decoder uses exact unsigned integer arithmetic at widths of 8, 16, 32, 64 and 128 bits. Editable names and spreadsheet paste are optional. Versioned JSON configurations contain names and width, without the current value. No tool data is saved in browser storage.
 
 Cloudflare hosts the site and automatically installs Web Analytics on `datatransform.dev` for page visits and loading performance. Custom tool-event hooks dispatch allowlisted events within the page and have no collection destination. See `docs/events.md`.
 
