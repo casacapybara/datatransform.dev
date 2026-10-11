@@ -7,7 +7,7 @@ test('deployment contains only public assets and all local page dependencies exi
   execFileSync(process.execPath, ['scripts/build.mjs'], { env: { ...process.env, SITE_PREVIEW: '1' } });
   function files(path) { return readdirSync(path, { withFileTypes: true }).flatMap(item => item.isDirectory() ? files(join(path, item.name)) : [join(path, item.name)]); }
   const built = files('dist');
-  assert.equal(built.length, 26);
+  assert.equal(built.length, 29);
   assert.ok(!built.some(file => /private|planning|LAUNCH_PLAN|tests|README|package|logo\.png/.test(file)));
   const root = resolve('dist');
   for (const file of built.filter(file => file.endsWith('.html'))) {
@@ -20,6 +20,7 @@ test('deployment contains only public assets and all local page dependencies exi
       assert.ok(existsSync(target), `${file}: missing ${url}`);
     }
   }
+  assert.ok(!built.some(file => /bitwiseflagdecoder4/.test(file)));
   const headers = readFileSync('dist/_headers', 'utf8');
   assert.match(headers, /connect-src https:\/\/datatransform\.dev\/cdn-cgi\/rum;/);
   assert.match(headers, /script-src 'self' https:\/\/static\.cloudflareinsights\.com;/);
