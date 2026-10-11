@@ -26,7 +26,7 @@ Open `http://127.0.0.1:8765/`. Text diff is at `/text-diff/`. Stop the preview w
 
 The build copies an explicit list of public files into `dist/`. Only that directory should be deployed. Private plans and original tool copies are excluded from Git and the build. The local preview does not apply Cloudflare's `_headers`; verify those headers on a Cloudflare preview before launch.
 
-Shared styling lives in `assets/site.css`; the light theme is the default. Theme preference is the only application data saved in browser storage. The text comparison runs in a browser worker using a locally bundled, pinned copy of Google's Diff Match Patch library. See `text-diff/vendor/README.md` for provenance.
+Shared styling lives in `assets/site.css`; the light theme is the default. Theme preference is the only application data saved in browser storage. Hosted text comparison runs in a browser worker using a locally bundled, pinned copy of Google's Diff Match Patch library. Opening `text-diff/index.html` directly also works: file URLs use the same comparison on the page's main thread, with the existing input and algorithm time limits. Large local-file comparisons can briefly pause the interface. Use the local HTTP preview for the complete site and background processing. See `text-diff/vendor/README.md` for provenance.
 
 Analytics hooks currently dispatch allowlisted events within the page. No analytics destination is connected. See `docs/events.md`. Cloudflare deployment and analytics setup remain launch tasks.
 

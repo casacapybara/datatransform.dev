@@ -101,12 +101,23 @@
       say('Use up to 200,000 characters and 5,000 lines in each input.', true);
       emit('comparison_failed', { reason: 'input_limit' }); return;
     }
-    if (!globalThis.Worker) {
-      say('This browser cannot run the comparison. Try a current version of Chrome, Edge, Firefox, or Safari.', true);
-      emit('comparison_failed', { reason: 'unavailable' }); return;
-    }
     compare.disabled = true; compare.textContent = 'Comparing…';
     say('Comparing text…'); output.setAttribute('aria-busy', 'true');
+    // File origins cannot reliably load external workers. Classic local scripts
+    // can still run the same bounded comparison without weakening browser security.
+    if (globalThis.location.protocol === 'file:' || !globalThis.Worker) {
+      const first = original.value, second = updated.value;
+      timer = setTimeout(() => {
+        try {
+          const result = TextDiffModel.compare(first, second);
+          stop(); render(result);
+        } catch {
+          stop(); say('The comparison could not finish. Try shorter text.', true);
+          emit('comparison_failed', { reason: 'processing' });
+        }
+      }, 0);
+      return;
+    }
     try {
       worker = new Worker('./diff-worker.js');
       worker.addEventListener('message', ({ data }) => {
