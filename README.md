@@ -29,7 +29,7 @@ The build copies an explicit list of public files into `dist/`. Only that direct
 
 Shared styling lives in `assets/site.css`; the light theme is the default. Theme preference is the only application data saved in browser storage. Hosted text comparison runs in a browser worker using a locally bundled, pinned copy of Google's Diff Match Patch library. Opening `text-diff/index.html` directly also works: file URLs use the same comparison on the page's main thread, with the existing input and algorithm time limits. Large local-file comparisons can briefly pause the interface. Use the local HTTP preview for the complete site and background processing. See `text-diff/vendor/README.md` for provenance.
 
-Analytics hooks currently dispatch allowlisted events within the page. No analytics destination is connected. See `docs/events.md`. Cloudflare deployment and analytics setup remain launch tasks.
+Cloudflare hosts the site and automatically installs Web Analytics on `datatransform.dev` for page visits and loading performance. Custom tool-event hooks dispatch allowlisted events within the page and have no collection destination. See `docs/events.md`.
 
 ## Cloudflare deployment
 

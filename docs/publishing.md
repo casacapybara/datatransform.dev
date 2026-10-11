@@ -31,13 +31,13 @@ This follows [Workers Builds setup](https://developers.cloudflare.com/workers/ci
 - Run a comparison, navigate changes, clear inputs, and test both themes in Safari and Chrome.
 - Confirm security headers are applied and do not prevent the comparison worker from loading.
 - Confirm pages have `X-Robots-Tag: noindex` and `robots.txt` blocks crawling during the preview phase.
-- Confirm the build includes only the intended public assets and neither analytics nor advertising has been injected unexpectedly.
+- Confirm the build includes only the intended public assets and Cloudflare Web Analytics is the only expected analytics script; no advertising is installed.
 
 Find logs under the Worker's Builds or Deployments view. Record the verified commit and deployment version privately. Test a subsequent push and the rollback process before connecting the domain.
 
 ## Launch and analytics
 
-After verifying the preview, configure Cloudflare Web Analytics, update the privacy page for the actual services enabled, and attach `datatransform.dev` as the Worker's custom domain. Review existing DNS records before making changes.
+The production domain `datatransform.dev` uses Cloudflare’s automatic Web Analytics installation. Its script loads from `static.cloudflareinsights.com` and reports to `https://datatransform.dev/cdn-cgi/rum`; the security policy permits these endpoints. Do not add a second analytics snippet. Custom tool events have no collection destination. Update the privacy page when the services in use change.
 
 When ready for production indexing, set `SITE_PREVIEW=0` in build variables and trigger a new build. Verify the canonical URLs, sitemap, robots file, security headers, HTTPS and analytics on the real domain. Other preview builds should retain the default indexing block.
 
