@@ -30,4 +30,8 @@ Shared styling lives in `assets/site.css`; the light theme is the default. Theme
 
 Analytics hooks currently dispatch allowlisted events within the page. No analytics destination is connected. See `docs/events.md`. Cloudflare deployment and analytics setup remain launch tasks.
 
-Source licensing is still to be decided. Third-party components retain their own licences.
+## Licence
+
+Our code, documentation, and Flow logo are provided under the [MIT licence](LICENSE). Copyright notices use the public GitHub account name `casacapybara`.
+
+Google's bundled Diff Match Patch library retains its [Apache 2.0 licence](text-diff/vendor/LICENSE.txt), copyright header, and [source provenance](text-diff/vendor/README.md). The MIT licence does not replace third-party licences.
