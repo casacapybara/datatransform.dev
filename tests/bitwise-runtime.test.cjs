@@ -28,7 +28,7 @@ test('import is atomic, preserves values and names, and exposes width overflow',
   const h=harness();h.edit('inputValue','256');await h.load({size:100,text:async()=>config('Saved',8)});
   assert.equal(h.node('inputValue').value,'256');assert.equal(h.node('bitWidth').value,'8');assert.equal(h.node('resultDecimal').textContent,'—');
   await h.load({size:100,text:async()=>'{bad'});assert.equal(h.node('configName').value,'Saved');assert.equal(h.node('flagsTableBody').children.length,8);
-  await h.load({size:model.FILE_LIMIT+1,text:async()=>{throw new Error('must not read');}});assert.match(h.node('configStatus').textContent,/256 KiB/);
+  await h.load({size:model.FILE_LIMIT+1,text:async()=>{throw new Error('must not read');}});assert.match(h.node('configStatusText').textContent,/256 KiB/);
 });
 test('editing cancels pending imports and an older file cannot overwrite a newer file', async () => {
   const h=harness();let finish;
@@ -36,7 +36,7 @@ test('editing cancels pending imports and an older file cannot overwrite a newer
   h.edit('configName','Edited');finish(config('Old'));await pending;assert.equal(h.node('configName').value,'Edited');
   const older=h.load({size:100,text:()=>new Promise(resolve=>finish=resolve)});
   await h.load({size:100,text:async()=>config('New')});finish(config('Old'));await older;
-  assert.equal(h.node('configName').value,'New');assert.match(h.node('configStatus').textContent,/Configuration loaded/);
+  assert.equal(h.node('configName').value,'New');assert.match(h.node('configStatusText').textContent,/Configuration loaded/);
 });
 test('bulk apply is atomic and affects names without changing mask or other labels', () => {
   const h=harness();h.edit('inputValue','11');const name=h.row(3).children[4].children[0];name.value='Admin';h.node('flagsTableBody').listeners.input({target:name});

@@ -2,12 +2,27 @@
   'use strict';
   const $ = id => document.getElementById(id), M = globalThis.BitwiseModel;
   const emit = name => { try { globalThis.DataTransformEvents?.emit(name, {}, 'bitwise-flag-decoder'); } catch { /* Optional hooks cannot stop the tool. */ } };
-  if (!M || typeof BigInt !== 'function') { $('decodeStatus').textContent = 'This tool needs a browser with support for large integers. Update your browser to use it.'; return; }
+  if (!M || typeof BigInt !== 'function') {
+    $('decodeStatus').hidden = false;
+    $('decodeStatus').dataset.kind = 'error';
+    $('decodeStatusIcon').setAttribute('d', 'M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0 M8.5 8.5l7 7 M15.5 8.5l-7 7');
+    $('decodeStatusText').textContent = 'This tool needs a browser with support for large integers. Update your browser to use it.'; return;
+  }
   let width = 64, names = new Map(), value = 0n, pendingNames = null, revision = 0, loadSequence = 0;
   let copyText = '';
   const rows = new Map();
-  function status(id, text, error = false) {
-    $(id).textContent = text; $(id).classList.toggle('error', error);
+  const statusIcons = {
+    success: 'M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0 M7 12l3 3 7-7',
+    error: 'M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0 M8.5 8.5l7 7 M15.5 8.5l-7 7',
+    info: 'M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0 M12 11v6 M12 7v.2',
+  };
+  function status(id, text, kind = 'info') {
+    $(id).hidden = !text;
+    $(id).dataset.kind = kind;
+    $(id).classList.toggle('error', kind === 'error');
+    $(`${id}Icon`).setAttribute('d', statusIcons[kind]);
+    $(`${id}Kind`).textContent = text ? `${kind === 'error' ? 'Error' : kind === 'success' ? 'Success' : 'Information'}: ` : '';
+    $(`${id}Text`).textContent = text;
   }
   function changed() { revision++; }
   function buildTable() {
@@ -63,9 +78,9 @@
     try {
       value = M.parseValue($('inputValue').value, width);
       $('inputValue').setAttribute('aria-invalid', 'false');
-      status('decodeStatus', value === null ? 'Enter a value or select Clear to start at zero.' : `${M.enabledBits(value, width).length} bits enabled within bits 0–${width - 1}.`);
+      status('decodeStatus', value === null ? 'Enter a value or select Clear to start at zero.' : `${M.enabledBits(value, width).length} bits enabled within bits 0–${width - 1}.`, value === null ? 'info' : 'success');
     } catch (error) {
-      value = null; $('inputValue').setAttribute('aria-invalid', 'true'); status('decodeStatus', error.message, true); emit('bitwise_failed');
+      value = null; $('inputValue').setAttribute('aria-invalid', 'true'); status('decodeStatus', error.message, 'error'); emit('bitwise_failed');
     }
     refreshResult();
   }
@@ -79,7 +94,7 @@
       $('bulkPreview').textContent = pendingNames.map(flag => `Bit ${flag.bit}: ${flag.name || '(clear name)'}`).join('\n');
       status('bulkStatus', `${pendingNames.length} names ready to apply. Other names and the current value stay as they are.`);
       $('applyNames').disabled = false;
-    } catch (error) { status('bulkStatus', error.message, true); }
+    } catch (error) { status('bulkStatus', error.message, 'error'); }
   }
   function download(text, filename) {
     const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
@@ -92,7 +107,7 @@
     const nextWidth = Number($('bitWidth').value);
     if (Array.from(names).some(([bit, name]) => bit >= nextWidth && name !== '')) {
       $('bitWidth').value = String(width);
-      status('configStatus', 'Clear flag names above the new width before reducing it. Your names have been kept.', true); return;
+      status('configStatus', 'Clear flag names above the new width before reducing it. Your names have been kept.', 'error'); return;
     }
     changed(); width = nextWidth; buildTable(); decode(); updateBulkPreview(); status('configStatus', `Using ${width} bits.`);
   });
@@ -121,18 +136,18 @@
     updateBulkPreview(); if (!pendingNames) return;
     changed(); const count = pendingNames.length;
     for (const { bit, name } of pendingNames) { names.set(bit, name); rows.get(bit).name.value = name; }
-    refreshResult(); status('copyStatus', ''); $('bulkNames').value = ''; updateBulkPreview(); status('bulkStatus', `Applied ${count} flag names.`); emit('bitwise_names_applied');
+    refreshResult(); status('copyStatus', ''); $('bulkNames').value = ''; updateBulkPreview(); status('bulkStatus', `Applied ${count} flag names.`, 'success'); emit('bitwise_names_applied');
   });
   $('configName').addEventListener('input', changed);
   $('clearNames').addEventListener('click', () => {
-    changed(); names.clear(); $('configName').value = ''; buildTable(); refreshResult(); status('copyStatus', ''); status('configStatus', 'Flag names cleared. The value and width have been kept.');
+    changed(); names.clear(); $('configName').value = ''; buildTable(); refreshResult(); status('copyStatus', ''); status('configStatus', 'Flag names cleared. The value and width have been kept.', 'success');
   });
   $('downloadConfig').addEventListener('click', () => {
     try {
       const data = M.configuration($('configName').value, width, names);
       const slug = data.name.toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80) || 'flag-configuration';
-      download(JSON.stringify(data, null, 2) + '\n', slug + '.json'); status('configStatus', 'Configuration downloaded. It contains names and width, without the decoded value.'); emit('bitwise_configuration_saved');
-    } catch (error) { status('configStatus', error.message, true); }
+      download(JSON.stringify(data, null, 2) + '\n', slug + '.json'); status('configStatus', 'Configuration downloaded. It contains names and width, without the decoded value.', 'success'); emit('bitwise_configuration_saved');
+    } catch (error) { status('configStatus', error.message, 'error'); }
   });
   $('configFile').addEventListener('change', async () => {
     const file = $('configFile').files[0]; $('configFile').value = ''; if (!file) return;
@@ -147,15 +162,15 @@
       names = new Map(data.flags.map(flag => [flag.bit, flag.name])); width = data.bitWidth;
       $('configName').value = data.name; $('bitWidth').value = String(width);
       buildTable(); decode(); updateBulkPreview(); status('copyStatus', '');
-      status('configStatus', 'Configuration loaded. Your input value has been kept; check the result if the width changed.'); emit('bitwise_configuration_loaded');
-    } catch (error) { if (request === revision && sequence === loadSequence) { status('configStatus', error.message + ' Your configuration has been kept.', true); emit('bitwise_failed'); } }
+      status('configStatus', 'Configuration loaded. Your input value has been kept; check the result if the width changed.', 'success'); emit('bitwise_configuration_loaded');
+    } catch (error) { if (request === revision && sequence === loadSequence) { status('configStatus', error.message + ' Your configuration has been kept.', 'error'); emit('bitwise_failed'); } }
   });
   $('copyResult').addEventListener('click', async () => {
     if (value === null) return;
     const request = revision;
     try {
-      await navigator.clipboard.writeText(copyText); if (request === revision) status('copyStatus', 'Result copied.'); emit('bitwise_copied');
-    } catch { if (request === revision) status('copyStatus', 'Clipboard access is unavailable. Select and copy the result text manually.', true); }
+      await navigator.clipboard.writeText(copyText); if (request === revision) status('copyStatus', 'Result copied.', 'success'); emit('bitwise_copied');
+    } catch { if (request === revision) status('copyStatus', 'Clipboard access is unavailable. Select and copy the result text manually.', 'error'); }
   });
   buildTable(); decode(); updateBulkPreview(); emit('tool_opened');
 })();
