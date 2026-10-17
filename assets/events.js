@@ -1,6 +1,7 @@
 (() => {
   'use strict';
   const allowed = new Map([
+    ...['list_compared', 'list_failed', 'list_cleared', 'list_copied', 'list_downloaded'].map(name => [name, []]),
     ['tool_opened', []], ['comparison_completed', ['result']],
     ['comparison_failed', ['reason']], ['input_cleared', ['side']],
     ['clipboard_pasted', ['side']], ['clipboard_failed', ['side']],
@@ -19,7 +20,7 @@
   // There is no network transport, queue, log, identifier, or input capture here.
   globalThis.DataTransformEvents = Object.freeze({
     emit(name, metadata = {}, tool = 'text-diff') {
-      if (!allowed.has(name) || !['text-diff', 'base64-decoder-encoder', 'bitwise-flag-decoder'].includes(tool)) return;
+      if (!allowed.has(name) || !['text-diff', 'base64-decoder-encoder', 'bitwise-flag-decoder', 'list-comparison'].includes(tool)) return;
       const detail = { name, tool };
       for (const key of allowed.get(name)) {
         if (values[key].includes(metadata[key])) detail[key] = metadata[key];
