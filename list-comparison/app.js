@@ -22,7 +22,7 @@
       const listView = !['all', 'frequency'].includes(mode);
       els.outputFormat.disabled = !listView;
       if (!listView) els.outputFormat.value = 'report';
-      els.formatHelp.textContent = listView ? 'Items only removes headings and counts; each item ends with a line break.' : 'Items-only export is available in list views. This view includes headings and counts.';
+      els.formatHelp.textContent = listView ? 'Items only removes headings and counts; each item ends with a line break.' : 'Items-only export is not available in this view.';
       els.cleanupPreview.textContent = ['left', 'right'].map(side => `${side === 'left' ? 'Left' : 'Right'} list (first 3 lines):\n` + result.preview[side].map(row => `${JSON.stringify(row.before).slice(0, 300)} → ${JSON.stringify(row.after).slice(0, 300)}`).join('\n')).join('\n\n');
       const text = ListComparison.report(result, mode, els.leftName.value, els.rightName.value, undefined, els.outputFormat.value);
       for (const id of ['leftCount', 'rightCount']) els[id].textContent = `${result[id]} items`;
