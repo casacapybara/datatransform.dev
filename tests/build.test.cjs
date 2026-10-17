@@ -7,7 +7,7 @@ test('deployment contains only public assets and all local page dependencies exi
   execFileSync(process.execPath, ['scripts/build.mjs'], { env: { ...process.env, SITE_PREVIEW: '1' } });
   function files(path) { return readdirSync(path, { withFileTypes: true }).flatMap(item => item.isDirectory() ? files(join(path, item.name)) : [join(path, item.name)]); }
   const built = files('dist');
-  assert.equal(built.length, 33);
+  assert.equal(built.length, 37);
   assert.ok(!built.some(file => /private|planning|LAUNCH_PLAN|tests|README|package|logo\.png/.test(file)));
   const root = resolve('dist');
   for (const file of built.filter(file => file.endsWith('.html'))) {
@@ -20,7 +20,8 @@ test('deployment contains only public assets and all local page dependencies exi
       assert.ok(existsSync(target), `${file}: missing ${url}`);
     }
   }
-  assert.ok(!built.some(file => /bitwiseflagdecoder4|list-compare-v1/.test(file)));
+  assert.ok(!built.some(file => /bitwiseflagdecoder4|csv-extractor-v2|csv_to_json_converter|list-compare-v1/.test(file)));
+  assert.match(readFileSync('dist/sitemap.xml', 'utf8'), /https:\/\/datatransform\.dev\/csv-search-filter-transform\//);
   assert.match(readFileSync('dist/sitemap.xml', 'utf8'), /https:\/\/datatransform\.dev\/list-comparison\//);
   const headers = readFileSync('dist/_headers', 'utf8');
   assert.match(headers, /connect-src https:\/\/datatransform\.dev\/cdn-cgi\/rum;/);
