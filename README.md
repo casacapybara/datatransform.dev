@@ -23,7 +23,7 @@ npm run build
 npm run preview
 ```
 
-Open `http://127.0.0.1:8765/`. Text diff is at `/text-diff/`; the Base64 tool is at `/base64-decoder-encoder/`; the bitwise flag decoder is at `/bitwise-flag-decoder/`. Stop the preview with Ctrl+C.
+Open `http://127.0.0.1:8765/`. Text diff is at `/text-diff/`; the Base64 tool is at `/base64-decoder-encoder/`; the bitwise flag decoder is at `/bitwise-flag-decoder/`. List comparison is at `/list-comparison/`. Stop the preview with Ctrl+C.
 
 The build copies an explicit list of public files into `dist/`. Only that directory should be deployed. Private plans and original tool copies are excluded from Git and the build. The local preview does not apply Cloudflare's `_headers`; verify those headers on a Cloudflare preview before launch.
 
@@ -32,6 +32,8 @@ Shared styling lives in `assets/site.css`; the light theme is the default. Theme
 The bitwise flag decoder uses exact unsigned integer arithmetic at widths of 8, 16, 32, 64 and 128 bits. Editable names and spreadsheet paste are optional. Versioned JSON configurations contain names and width, without the current value. No tool data is saved in browser storage.
 
 Cloudflare hosts the site and automatically installs Web Analytics on `datatransform.dev` for page visits and loading performance. Custom tool-event hooks dispatch allowlisted events within the page and have no collection destination. See `docs/events.md`.
+
+List comparison finds shared and exclusive items, builds merged distinct lists and combined differences, and compares per-side frequencies before deduplication. Copy or download a report or items only. Optional cleanup removes prefixes and suffixes, replaces literal text, collapses whitespace and normalizes Unicode to NFC, with a preview that preserves the pasted source. Shared items retain the left list’s spelling and, with deduplication off, its occurrences. Inputs and results stay in memory. Each list is limited to 1,000,000 UTF-16 code units and 20,000 lines. Cleanup fields allow 1,000 code units, transformed data allows 1,000,000 per list, and reports allow 10,000,000.
 
 ## Cloudflare deployment
 

@@ -38,3 +38,7 @@ Files, filenames, input text, decoded bytes and clipboard contents are excluded.
 Hooks use the fixed tool identifier `bitwise-flag-decoder`. Events remain within the page and have no collection destination.
 
 The events `tool_opened`, `bitwise_failed`, `bitwise_cleared`, `bitwise_names_applied`, `bitwise_configuration_saved`, `bitwise_configuration_loaded`, and `bitwise_copied` have no allowed metadata. Values, names, widths, pasted rows, configuration contents, filenames and error text are excluded.
+
+## List comparison
+
+Hooks use the fixed tool identifier `list-comparison`. The events `tool_opened`, `list_compared`, `list_failed`, `list_cleared`, `list_copied` and `list_downloaded` have no metadata. List contents, names, options, counts, filenames and error text are excluded. Events stay within the page and have no collection destination.

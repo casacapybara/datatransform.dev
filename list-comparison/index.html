@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>List comparison | DataTransform</title>
+<meta name="description" content="Compare two lists to find shared items and items unique to either list. Match by case or whitespace and export a text report in your browser.">
+<link rel="canonical" href="https://datatransform.dev/list-comparison/">
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/brand/favicon-32.png"><link rel="icon" type="image/svg+xml" href="../assets/brand/favicon.svg">
+<script src="../assets/theme.js"></script><link rel="stylesheet" href="../assets/site.css"><link rel="stylesheet" href="./list.css">
+<script src="../assets/events.js" defer></script><script src="./model.js" defer></script><script src="./app.js" defer></script>
+</head><body><a class="skip-link" href="#main">Skip to tool</a>
+<header class="site-header"><div class="header-inner"><a class="brand" href="../" aria-label="DataTransform home"><img class="brand-logo brand-logo-light" src="../assets/brand/logo-light.svg" alt="datatransform.dev" width="266" height="44"><img class="brand-logo brand-logo-dark" src="../assets/brand/logo-dark.svg" alt="datatransform.dev" width="266" height="44"></a><button id="theme-toggle" class="theme-toggle" type="button" role="switch" aria-checked="false"><span>Dark mode</span><span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span></button></div></header>
+<main id="main">
+<div class="page-heading"><h1>List comparison</h1><p>Find shared items and items unique to either list. Paste one item per line.</p><p class="privacy-note">Your lists stay in this browser. Nothing is uploaded. <a href="../privacy/">Privacy details</a></p></div>
+<noscript><p class="panel">Enable JavaScript to compare lists.</p></noscript>
+    <section class="panel list-toolbar" aria-label="Comparison settings">
+      <div class="comparison-buttons" aria-label="Comparison mode">
+        <button class="button" aria-pressed="true" data-mode="both">Show items in both lists</button>
+        <button class="button" aria-pressed="false" data-mode="leftOnly">Show items only in left list</button>
+        <button class="button" aria-pressed="false" data-mode="rightOnly">Show items only in right list</button>
+        <button class="button" aria-pressed="false" data-mode="union">Merged distinct list</button>
+        <button class="button" aria-pressed="false" data-mode="differences">Combined differences</button>
+        <button class="button" aria-pressed="false" data-mode="frequency">Frequency comparison</button>
+        <button class="button" aria-pressed="false" data-mode="all">Show full comparison report</button>
+      </div>
+
+      <div class="options">
+        <label class="checkbox">
+          <input id="caseInsensitive" type="checkbox" checked />
+          Case-insensitive matching
+        </label>
+
+        <label class="checkbox">
+          <input id="trimWhitespace" type="checkbox" checked />
+          Trim leading/trailing spaces
+        </label>
+
+        <label class="checkbox">
+          <input id="ignoreBlankLines" type="checkbox" checked />
+          Ignore blank lines
+        </label>
+
+        <label class="checkbox">
+          <input id="dedupeWithinLists" type="checkbox" checked />
+          De-duplicate within each list
+        </label>
+
+        <label class="checkbox">
+          <input id="sortOutput" type="checkbox" checked />
+          Sort output alphabetically
+        </label>
+      </div>
+    </section>
+
+    <details class="panel cleanup-panel"><summary>Clean up list items <span id="cleanupState" class="count-pill">off</span></summary>
+      <p class="input-help">Applies to both lists without editing your pasted text. Steps run in this order: remove prefix, remove suffix, replace text, collapse whitespace, normalize Unicode, then trim if selected above. Prefix, suffix and replacement matches are literal and case-sensitive.</p>
+      <div class="cleanup-grid">
+        <div><label for="prefix">Remove prefix</label><input class="name-input" id="prefix" type="text" maxlength="1000" autocomplete="off" placeholder="For example, ID-"></div>
+        <div><label for="suffix">Remove suffix</label><input class="name-input" id="suffix" type="text" maxlength="1000" autocomplete="off" placeholder="For example, .txt"></div>
+        <div><label for="find">Find text</label><input class="name-input" id="find" type="text" maxlength="1000" autocomplete="off"></div>
+        <div><label for="replacement">Replace with</label><input class="name-input" id="replacement" type="text" maxlength="1000" autocomplete="off"><p class="input-help">Leave blank to remove the found text.</p></div>
+      </div>
+      <div class="options"><label class="checkbox"><input id="replaceEnabled" type="checkbox"> Enable find and replace</label><label class="checkbox"><input id="collapseWhitespace" type="checkbox"> Collapse repeated whitespace to one space</label><label class="checkbox"><input id="unicodeNormalize" type="checkbox"> Normalize Unicode (NFC)</label></div>
+      <p class="input-help">A prefix or suffix is removed once, only at that end of the item. Replace changes every non-overlapping occurrence and treats $ and backslashes literally. Unicode normalization matches composed and decomposed forms such as é; it preserves accents. Changes can merge previously distinct items.</p>
+      <h3>Cleanup preview</h3><p class="input-help">First 3 lines per side, before and after. Values use JSON string notation to show whitespace. Each value is limited to 300 preview characters.</p><pre id="cleanupPreview" tabindex="0" aria-label="Cleanup preview"></pre>
+    </details>
+
+    <section class="inputs list-inputs">
+      <div class="panel">
+        <div class="list-heading">
+          <label for="leftName">Left list name</label>
+          <span class="count-pill" id="leftCount">0 items</span>
+        </div>
+        <input class="name-input" maxlength="100" autocomplete="off" id="leftName" type="text" value="Left List" />
+
+        <label class="sr-only" for="leftText">Left list items</label>
+        <textarea id="leftText" spellcheck="false" autocomplete="off" placeholder="Paste the first list here, one item per line..."></textarea>
+      </div>
+
+      <div class="panel">
+        <div class="list-heading">
+          <label for="rightName">Right list name</label>
+          <span class="count-pill" id="rightCount">0 items</span>
+        </div>
+        <input class="name-input" maxlength="100" autocomplete="off" id="rightName" type="text" value="Right List" />
+
+        <label class="sr-only" for="rightText">Right list items</label>
+        <textarea id="rightText" spellcheck="false" autocomplete="off" placeholder="Paste the second list here, one item per line..."></textarea>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="results-header">
+        <div>
+          <h2 class="results-title" id="resultTitle">Items in both lists</h2>
+          <div class="summary">
+            <div class="summary-card">
+              <strong id="bothCount">0</strong>
+              <span>In both</span>
+            </div>
+            <div class="summary-card">
+              <strong id="leftOnlyCount">0</strong>
+              <span>Only in left</span>
+            </div>
+            <div class="summary-card">
+              <strong id="rightOnlyCount">0</strong>
+              <span>Only in right</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="result-actions">
+          <button class="button" id="copyBtn" disabled>Copy output</button>
+          <button class="button" id="downloadBtn" disabled>Export .txt</button>
+          <button class="button" id="clearBtn">Clear lists</button>
+        </div>
+      </div>
+
+      <div class="export-format"><label for="outputFormat">Copy and export format</label><select id="outputFormat"><option value="report">Report with headings</option><option value="items">Items only</option></select><p id="formatHelp" class="input-help"></p></div>
+      <p id="status" class="message" role="status" aria-atomic="true"></p><div id="frequencyPreview" class="frequency-preview" tabindex="0" role="region" aria-label="Frequency counts" hidden></div><pre id="output" tabindex="0" aria-label="Comparison report"></pre>
+      <p class="small-note">
+        Shared items use the left list’s spelling. With deduplication off, shared items retain the left list’s repeats; each exclusive group retains its own repeats. Counts above refer to displayed occurrences. The merged list always contains distinct items. Combined differences retains exclusive repeats when deduplication is off. Frequency comparison counts every occurrence before deduplication and shows left count minus right count. Its item column uses JSON string notation to keep whitespace visible.
+      </p>
+    </section>
+
+<div class="help-columns"><section><h2>Compare two lists</h2><p>Paste one list on each side, then choose shared items, items only on the left, items only on the right, a merged distinct list, combined differences, frequency counts, or the full report. Results update automatically. Name the lists to make the exported report easier to read.</p><p>For example, compare a left list containing Apple and Pear with a right list containing Pear and Plum. Pear is shared, Apple appears only on the left, and Plum appears only on the right.</p><p>Matching ignores case and surrounding whitespace by default. Turn off either option for an exact comparison of that aspect. Trimming also changes displayed values. Optional cleanup transforms both comparison keys and output values while preserving the pasted source. Clear a prefix or suffix, or disable a cleanup checkbox, to restore those source values in the output. Sorting uses your browser’s locale with natural numeric order, so item2 comes before item10. Turn sorting off to retain source order.</p></section>
+<section><h2>Privacy and limits</h2><p>Lists, names and reports remain in memory. The tool does not upload them, store them or put them in URLs. Copy writes to the clipboard only when selected. Export saves a UTF-8 text file. Clear lists removes both inputs and the report; names and options remain. Reloading clears tool data. Only the shared theme preference is saved. See <a href="../privacy/">privacy and analytics</a>.</p><p>Each list allows 1,000,000 UTF-16 code units and 20,000 lines, including blank lines. Names allow 100 code units. Cleanup fields allow 1,000 code units each, and transformed data allows 1,000,000 per list. Reports allow 10,000,000 code units; the preview shows the first 30,000. Copy and export include the complete report. Large comparisons may briefly pause the page.</p><p>LF, CRLF and CR line endings are supported. With blank lines included, an empty input has no items, but a trailing line break adds an empty item. Whitespace-only lines count as blank only when trimming is enabled. Matching uses lowercase text without accent removal. Unicode NFC normalization is optional. Frequency counts use the same matching and cleanup rules, independent of the deduplication checkbox. With sorting off, the merged list and frequency rows follow first appearance on the left, then new items from the right; combined differences lists left-only items before right-only items. Items-only output has no headings or counts and is available for each list view. An empty result exports an empty file, while an empty item exports a line break. CSV fields and fuzzy matches are not supported. Modern JavaScript and Blob URLs are required. Clipboard access may require HTTPS and permission; export remains available if copying fails.</p></section></div>
+</main>
+<footer class="site-footer"><div class="footer-inner"><span>Made with 💚 in London</span><nav aria-label="Footer"><a href="../about/">About</a><a href="../privacy/">Privacy</a><a href="../contact/">Contact</a><a href="../terms/">Terms</a><a href="https://github.com/casacapybara/datatransform.dev/tree/main/list-comparison" rel="noreferrer">Source</a></nav></div></footer>
+</body></html>
