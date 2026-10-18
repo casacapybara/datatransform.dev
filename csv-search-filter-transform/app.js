@@ -1,7 +1,7 @@
 (function () {
   'use strict';
   const M = window.CsvSuite, $ = id => document.getElementById(id);
-  let dataset = null, changes = [], columns = [], latest = null, loadVersion = 0, manualRows = [], sortRules = [];
+  let dataset = null, changes = [], columns = [], latest = null, loadVersion = 0, manualRows = [], sortRules = [], outputHeaders = [], combineColumns = [];
   function node(tag, text, className) {
     const el = document.createElement(tag);
     if (text !== undefined) el.textContent = text;
@@ -47,10 +47,52 @@
     $('outputFormat').value = 'csv'; $('helpers').checked = false; $('protect').checked = true;
     $('indent').value = '2'; $('variable').value = 'data'; $('trimValues').checked = true;
     $('splitFields').checked = false; $('omitEmpty').checked = true;
-    updateVisibility();
+    resetColumnTools(); updateVisibility();
+  }
+  function resetColumnTools() {
+    outputHeaders = dataset ? [...dataset.headers] : [];
+    combineColumns = dataset ? dataset.headers.map((_,index)=>({index,included:false})) : [];
+    $('columnTools').disabled = !dataset; $('reshapePanel').open = false;
+    for (const [id,value] of Object.entries({columnMode:'none',columnSeparator:'comma',columnCustom:'',columnSplitCount:'2',columnSplitName:'Part',columnCombineName:'Combined'})) $(id).value=value;
+    $('columnTrim').checked=false; $('columnSkipEmpty').checked=true;
+    $('columnSplitSource').replaceChildren();
+    if (dataset) {
+      options($('columnSplitSource')); const placeholder=node('option','Choose a column'); placeholder.value=''; $('columnSplitSource').prepend(placeholder);
+    }
+    $('columnSplitSource').value=''; renderCombineColumns();
+    status('columnStatus',dataset ? 'Original columns are unchanged.' : 'Load data to split or combine columns.');
+  }
+  function renderCombineColumns(focusId) {
+    $('combineOrder').replaceChildren(...combineColumns.map((column,position)=>{
+      const row=node('div',undefined,'combine-choice'), label=node('label',undefined,'check'), check=node('input');
+      check.type='checkbox'; check.id=`combine-column-${column.index}`; check.checked=column.included;
+      check.addEventListener('change',()=>{column.included=check.checked;refresh();}); label.append(check,node('span',dataset.headers[column.index]));
+      const arrows=node('div',undefined,'column-arrows');
+      for(const [delta,text,direction] of [[-1,'↑','up'],[1,'↓','down']]) {
+        const move=button(text,`Move ${dataset.headers[column.index]} ${direction} in combined value`,()=>{
+          [combineColumns[position],combineColumns[position+delta]]=[combineColumns[position+delta],combineColumns[position]];
+          renderCombineColumns(`combine-column-${column.index}`);refresh();
+        }); move.id=`combine-move-${column.index}-${direction}`;move.disabled=position+delta<0||position+delta>=combineColumns.length;arrows.append(move);
+      }
+      row.append(label,arrows);return row;
+    }));
+    if(focusId)$(focusId).focus();
+  }
+  function columnSettings() {
+    const separators={comma:',',space:' ',tab:'\t',semicolon:';',pipe:'|'};
+    return {mode:$('columnMode').value,separator:$('columnSeparator').value==='custom'?$('columnCustom').value:separators[$('columnSeparator').value],
+      column:$('columnSplitSource').value===''?'':Number($('columnSplitSource').value),count:Number($('columnSplitCount').value),
+      name:$('columnMode').value==='split'?$('columnSplitName').value:$('columnCombineName').value,
+      columns:combineColumns.filter(c=>c.included).map(c=>c.index),trim:$('columnTrim').checked,skipEmpty:$('columnSkipEmpty').checked};
+  }
+  function syncOutputColumns(names) {
+    if (JSON.stringify(names)===JSON.stringify(outputHeaders)) return;
+    columns=columns.filter(c=>c.index<names.length&&outputHeaders[c.index]===names[c.index]);
+    const present=new Set(columns.map(c=>c.index));names.forEach((name,index)=>{if(!present.has(index))columns.push({index,name,included:true});});
+    outputHeaders=names;renderColumns();
   }
   function restoreColumns() {
-    columns = dataset.headers.map((name, index) => ({index, name, included: true}));
+    columns = outputHeaders.map((name, index) => ({index, name, included: true}));
     renderColumns(); refresh();
   }
   function load(text, name) {
@@ -84,8 +126,19 @@
     catch { if (version === loadVersion) status('loadStatus', 'Could not read that file. The current data has not changed.', true); }
   });
   $('loadPaste').addEventListener('click', () => { loadVersion++; load($('csvInput').value, 'pasted data'); $('csvFile').value = ''; });
+  $('example').addEventListener('click', () => {
+    loadVersion++;
+    const text = 'id,name,city,status,amount,fields\n001,Asha Patel,London,Active,24.50,"email,phone"\n002,Ben Reed,York,Pending,18.00,email\n003,Chris Jones,London,Active,12.00,"email,address"\n004,Dev Shah,,Pending,9.50,phone\n002,Ben Reed,York,Pending,18.00,email';
+    $('csvInput').value = text; $('csvFile').value = '';
+    load(text, 'example customers');
+    status('loadStatus', 'Example loaded: 5 rows, including a duplicate and a blank city. Try filtering London, removing duplicates, sorting amounts or splitting fields.');
+  });
   $('reset').addEventListener('click', reset);
   function updateVisibility() {
+    const columnMode=$('columnMode').value;
+    $('columnSeparatorGroup').hidden=$('columnWhitespace').hidden=columnMode==='none';
+    $('columnCustomGroup').hidden=columnMode==='none'||$('columnSeparator').value!=='custom';
+    $('columnSplitOptions').hidden=columnMode!=='split';$('columnCombineOptions').hidden=columnMode!=='combine';
     $('columnPicker').hidden = $('scope').value !== 'selected';
     const cellMode = ['empty', 'nonEmpty'].includes($('matchMode').value);
     $('cellPolicyGroup').hidden = !cellMode; $('criteria').disabled = cellMode; $('caseSensitive').disabled = cellMode;
@@ -93,7 +146,7 @@
     const negative = $('matchMode').value === 'notContains';
     $('negativeHelp').hidden = !negative; $('repeats').disabled = negative || cellMode;
     const format = $('outputFormat').value;
-    $('csvOptions').hidden = format !== 'csv'; $('jsonOptions').hidden = format === 'csv';
+    $('csvOptions').hidden = format !== 'csv'; $('jsonOptions').hidden = !['json','js'].includes(format);
     $('variableGroup').hidden = format !== 'js'; $('splitOptions').hidden = !$('splitFields').checked;
     $('download').textContent = `Download ${format === 'js' ? 'JavaScript' : format.toUpperCase()}`;
     $('variableHelp').textContent = `Exported as: const ${M.variableName($('variable').value)} = …`;
@@ -113,7 +166,7 @@
       value.addEventListener('input', () => { change.value = value.value; refresh(); });
       const typeGroup = node('div'), type = node('select', undefined, 'control');
       type.id = `change-type-${index}`;
-      for (const [v, text] of [['set', 'Set value'], ['replace', 'Find and replace']]) { const option = node('option', text); option.value = v; type.append(option); }
+      for (const [v, text] of [['set', 'Set value'], ['replace', 'Find and replace'], ['trim','Trim whitespace'], ['lower','Lowercase'], ['upper','Uppercase'], ['removePrefix','Remove prefix'], ['removeSuffix','Remove suffix']]) { const option = node('option', text); option.value = v; type.append(option); }
       type.value = change.type || 'set';
       const typeLabel = node('label', 'Action'); typeLabel.htmlFor = type.id; typeGroup.append(typeLabel, type);
       const findGroup = node('div'), find = node('input', undefined, 'control');
@@ -121,7 +174,12 @@
       const findLabel = node('label', 'Find text'); findLabel.htmlFor = find.id; findGroup.append(findLabel, find);
       const caseLabel = node('label', undefined, 'check'), caseCheck = node('input'); caseCheck.type = 'checkbox'; caseCheck.checked = change.caseSensitive !== false;
       caseLabel.append(caseCheck, node('span', 'Case-sensitive replacement'));
-      function showAction() { findGroup.hidden = type.value !== 'replace'; caseLabel.hidden = type.value !== 'replace'; valueLabel.textContent = type.value === 'replace' ? 'Replacement text' : 'New value'; }
+      function showAction() {
+        const simple = ['trim','lower','upper'].includes(type.value);
+        valueGroup.hidden = simple; row.classList.toggle('compact-change',simple);
+        findGroup.hidden = type.value !== 'replace'; caseLabel.hidden = type.value !== 'replace';
+        valueLabel.textContent = type.value === 'replace' ? 'Replacement text' : type.value === 'removePrefix' ? 'Prefix to remove' : type.value === 'removeSuffix' ? 'Suffix to remove' : 'New value';
+      }
       type.addEventListener('change', () => { change.type = type.value; showAction(); refresh(); });
       find.addEventListener('input', () => { change.find = find.value; refresh(); });
       caseCheck.addEventListener('change', () => { change.caseSensitive = caseCheck.checked; refresh(); });
@@ -192,7 +250,7 @@
       const label = node('label', undefined, 'check'), check = node('input');
       check.type = 'checkbox'; check.checked = column.included;
       check.addEventListener('change', () => { column.included = check.checked; rename.disabled = !column.included; refresh(); });
-      label.append(check, node('span', dataset.headers[column.index]));
+      label.append(check, node('span', outputHeaders[column.index]));
       const group = node('div', undefined, 'rename'), rename = node('input', undefined, 'control');
       rename.type = 'text'; rename.value = column.name; rename.disabled = !column.included;
       rename.id = `rename-${column.index}`;
@@ -201,7 +259,7 @@
       group.append(renameLabel, rename);
       const arrows = node('div', undefined, 'column-arrows');
       for (const [delta, text, title] of [[-1, '↑', 'up'], [1, '↓', 'down']]) {
-        const move = button(text, `Move ${dataset.headers[column.index]} ${title}`, () => {
+        const move = button(text, `Move ${outputHeaders[column.index]} ${title}`, () => {
           [columns[position], columns[position + delta]] = [columns[position + delta], columns[position]];
           renderColumns(column.index, delta); refresh();
         });
@@ -241,15 +299,21 @@
       const deduped = M.deduplicate(items, {enabled: $('removeDuplicates').checked, columns: $('duplicateScope').value === 'whole' ? dataset.headers.map((_, i) => i) : [...$('duplicateKeys').querySelectorAll('input:checked')].map(cb => Number(cb.value)), trim: $('duplicateTrim').checked, ignoreCase: $('duplicateIgnoreCase').checked});
       items = M.sortRows(deduped.items, sortRules);
       status('cleanupStatus', `${deduped.removed.toLocaleString()} duplicate row${deduped.removed === 1 ? '' : 's'} removed. ${sortRules.filter(r => r.column !== '').length} sort columns applied.`);
+      let shaped;
+      try { shaped=M.changeColumns(dataset.headers,items,columnSettings()); }
+      catch(err) { status('columnStatus',err.message,true);throw err; }
+      items=shaped.items;syncOutputColumns(shaped.headers);
+      const added=shaped.headers.length-dataset.headers.length;
+      status('columnStatus',added?`${added} new column${added===1?'':'s'} added. Original columns are retained; choose output columns below.`:'Original columns are unchanged.');
       const projection = columns.filter(c => c.included).map(c => ({index: c.index, name: c.name}));
-      const result = M.serialize(dataset.headers, items, {projection, format: $('outputFormat').value, helpers: $('helpers').checked, protect: $('protect').checked, trimValues: $('trimValues').checked, split: $('splitFields').checked, splitColumn: $('splitColumn').value, omitEmpty: $('omitEmpty').checked, indent: $('indent').value, variable: $('variable').value});
+      const result = M.serialize(outputHeaders, items, {projection, format: $('outputFormat').value, helpers: $('helpers').checked, protect: $('protect').checked, trimValues: $('trimValues').checked, split: $('splitFields').checked, splitColumn: $('splitColumn').value, omitEmpty: $('omitEmpty').checked, indent: $('indent').value, variable: $('variable').value});
       latest = result;
       $('download').disabled = false; $('copy').disabled = false;
       $('outputCount').textContent = `${items.length.toLocaleString()} row${items.length === 1 ? '' : 's'} · ${projection.length + ($('helpers').checked ? 3 : 0)} columns`;
       $('textPreview').textContent = result.text.slice(0, 30000) + (result.text.length > 30000 ? '\n… Preview truncated; download or copy for the complete output.' : '');
       renderTable(items, projection);
-      status('exportStatus', items.length ? `Ready to export ${items.length.toLocaleString()} row${items.length === 1 ? '' : 's'}. ${activeChanges.length} column change${activeChanges.length === 1 ? '' : 's'} applied.` : 'No rows remain. You can download an empty result or adjust your filters.');
-    } catch (err) { clearResult(); status('cleanupStatus', 'Check the value changes, duplicate keys, sorting and output options.', true); status('exportStatus', err.message, true); }
+      status('exportStatus', items.length ? `Ready to export ${items.length.toLocaleString()} row${items.length === 1 ? '' : 's'}. ${activeChanges.length} value change${activeChanges.length === 1 ? '' : 's'} applied. ${added} new column${added===1?'':'s'} added.` : 'No rows remain. You can download an empty result or adjust your filters.');
+    } catch (err) { clearResult(); status('cleanupStatus', 'Check value changes, duplicate keys, sorting, split/combine settings and output options.', true); status('exportStatus', err.message, true); }
   }
   function renderTable(items, projection) {
     const names = latest.preview.headers, data = latest.preview.rows;
@@ -261,6 +325,8 @@
     if (!items.length) $('tablePreview').append(node('p', 'No rows match your filters.', 'empty'));
   }
   for (const id of ['cellPolicy', 'removeDuplicates', 'duplicateScope', 'duplicateTrim', 'duplicateIgnoreCase', 'criteria', 'caseSensitive', 'trimCells', 'matchMode', 'scope', 'repeats', 'outputFormat', 'helpers', 'protect', 'indent', 'variable', 'trimValues', 'splitFields', 'splitColumn', 'omitEmpty']) $(id).addEventListener('input', refresh);
+  for(const id of ['columnMode','columnSeparator','columnSplitSource','columnSkipEmpty','columnTrim']) $(id).addEventListener('change',refresh);
+  for(const id of ['columnCustom','columnSplitCount','columnSplitName','columnCombineName']) $(id).addEventListener('input',refresh);
   $('copy').addEventListener('click', async () => {
     if (!latest) return;
     const output = latest;

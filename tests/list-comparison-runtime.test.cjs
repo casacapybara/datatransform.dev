@@ -17,6 +17,7 @@ function page({ copyFails = false, analyticsFails = false } = {}) {
   const modes = ['both', 'leftOnly', 'rightOnly', 'all', 'union', 'differences', 'frequency'].map(mode => Object.assign(new Element(), { dataset: { mode } }));
   const scope = vm.createContext({
     document: { getElementById(id) { return elements[id] ||= Object.assign(new Element(), { checked: defaults[id] ?? cleanupDefaults[id] ?? false, value: id === 'outputFormat' ? 'report' : (typeof cleanupDefaults[id] === 'string' ? cleanupDefaults[id] : '') }); }, querySelectorAll() { return modes; }, createElement() { return new Element(); }, body: { appendChild(link) { downloads.push(link); } }, dispatchEvent() {} },
+    CsvSuite: require('../csv-search-filter-transform/model.js'),
     navigator: { clipboard: { async writeText(text) { if (copyFails) throw new Error('Denied'); copied.push(text); } } },
     setTimeout(cb) { const id = ++sequence; timers.set(id, cb); return id; }, clearTimeout(id) { timers.delete(id); },
     confirm: () => true, Blob, URL: { createObjectURL: () => 'blob:test', revokeObjectURL() {} },
@@ -63,7 +64,7 @@ test('cleanup and format edits invalidate exports and recompute new list modes',
   p.input('outputFormat', 'items'); p.modes[4].listeners.click();
   assert.equal(e.output.textContent, 'a\nb\n');
   await e.copyBtn.listeners.click(); assert.equal(p.copied[0], 'a\nb\n');
-  p.modes[6].listeners.click(); assert.equal(e.outputFormat.disabled, true); assert.equal(e.outputFormat.value, 'report');
+  p.modes[6].listeners.click(); assert.equal(e.outputFormat.disabled, false); assert.equal(e.outputFormat.value, 'report');
   assert.match(e.output.textContent, /"a"\t2\t1\t1/);
   assert.equal(e.frequencyPreview.hidden, false);
   assert.equal(e.frequencyPreview.children[0].children[1].children[0].children[1].textContent, '2');
@@ -77,4 +78,26 @@ test('empty items-only result remains a valid zero-byte copy and download', asyn
   assert.equal(e.output.textContent, ''); assert.equal(e.copyBtn.disabled, false);
   await e.copyBtn.listeners.click(); assert.deepEqual(p.copied, ['']);
   e.downloadBtn.listeners.click(); assert.equal(p.downloads.length, 1);
+});
+
+test('structured list formats can be copied and downloaded in every view',async()=>{
+ const p=page(),e=p.elements;p.input('leftText','a|b\nx');p.input('rightText','x\ny');p.flush();
+ for(const mode of p.modes){mode.listeners.click();for(const format of ['csv','json','md','report']){
+   p.input('outputFormat',format);p.flush();await e.copyBtn.listeners.click();assert.ok(p.copied.at(-1));assert.equal(e.textPreview.textContent,p.copied.at(-1));assert.equal(e.formattedPanel.hidden,mode.dataset.mode!=='frequency');
+   if(format==='json')assert.ok(Array.isArray(JSON.parse(p.copied.at(-1))));
+   e.downloadBtn.listeners.click();assert.ok(p.downloads.at(-1).download.endsWith('.'+(format==='report'?'txt':format)));
+ }}
+});
+
+
+test('example resets cleanup and modes and provides shared, exclusive and frequency results', () => {
+  const p = page(), e = p.elements;
+  p.input('prefix', 'Ap'); p.input('leftText', 'old');
+  e.example.listeners.click(); p.flush();
+  assert.equal(e.prefix.value, ''); assert.equal(e.bothCount.textContent, '2');
+  assert.equal(e.leftOnlyCount.textContent, '2'); assert.equal(e.rightOnlyCount.textContent, '1');
+  assert.equal(e.copyBtn.disabled, false);
+  p.modes.find(m=>m.dataset.mode==='frequency').listeners.click();
+  assert.match(e.output.textContent, /"Apples"\t2\t1\t1/);
+  e.clearBtn.listeners.click(); assert.equal(e.copyBtn.disabled, true);
 });

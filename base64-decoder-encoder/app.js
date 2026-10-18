@@ -39,6 +39,19 @@
   document.querySelectorAll('[data-output]').forEach(button => button.addEventListener('click', () => {
     outputMode = button.dataset.output; selectMode('output', button); updateOutput();
   }));
+  $('exampleDecode').addEventListener('click', () => {
+    resetDecoded(); $('base64Input').value = 'SGVsbG8sIHdvcmxkIQ==';
+    status('decodeStatus', 'Example loaded. Select Decode to read “Hello, world!”.');
+  });
+  $('exampleEncode').addEventListener('click', () => {
+    resetEncoded(); selectedFile = null; $('fileInput').value = ''; $('fileInfo').textContent = 'No file selected.';
+    sourceMode = 'text'; outputMode = 'raw';
+    document.querySelectorAll('[data-source]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.source === sourceMode)));
+    document.querySelectorAll('[data-output]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.output === outputMode)));
+    $('fileSource').hidden = true; $('textSource').hidden = false;
+    $('plainTextInput').value = 'Hello, world!';
+    status('encodeStatus', 'Example loaded. Select Encode to create SGVsbG8sIHdvcmxkIQ==.');
+  });
   $('base64Input').addEventListener('input', resetDecoded);
   $('plainTextInput').addEventListener('input', resetEncoded);
   $('clearDecode').addEventListener('click', () => { $('base64Input').value = ''; resetDecoded(); $('base64Input').focus(); emit('input_cleared', {side:'decode'}); });

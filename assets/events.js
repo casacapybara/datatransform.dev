@@ -1,6 +1,12 @@
 (() => {
   'use strict';
   const allowed = new Map([
+    ...['import_loaded', 'import_completed', 'import_failed', 'import_cleared', 'import_copied', 'import_downloaded'].map(name => [name, []]),
+    ...['reshape_loaded', 'reshape_completed', 'reshape_failed', 'reshape_cleared', 'reshape_copied', 'reshape_downloaded'].map(name => [name, []]),
+    ...['cleanup_loaded', 'cleanup_completed', 'cleanup_failed', 'cleanup_cleared', 'cleanup_copied', 'cleanup_downloaded'].map(name => [name, []]),
+    ...['quality_loaded', 'quality_checked', 'quality_failed', 'quality_cleared', 'quality_copied', 'quality_downloaded'].map(name => [name, []]),
+    ...['conversion_loaded', 'conversion_completed', 'conversion_failed', 'conversion_cleared', 'conversion_copied', 'conversion_downloaded'].map(name => [name, []]),
+    ...['merge_loaded', 'merge_failed', 'merge_cleared', 'merge_copied', 'merge_downloaded'].map(name => [name, []]),
     ...['list_compared', 'list_failed', 'list_cleared', 'list_copied', 'list_downloaded'].map(name => [name, []]),
     ['tool_opened', []], ['comparison_completed', ['result']],
     ['comparison_failed', ['reason']], ['input_cleared', ['side']],
@@ -20,7 +26,7 @@
   // There is no network transport, queue, log, identifier, or input capture here.
   globalThis.DataTransformEvents = Object.freeze({
     emit(name, metadata = {}, tool = 'text-diff') {
-      if (!allowed.has(name) || !['text-diff', 'base64-decoder-encoder', 'bitwise-flag-decoder', 'list-comparison'].includes(tool)) return;
+      if (!allowed.has(name) || !['text-diff', 'base64-decoder-encoder', 'bitwise-flag-decoder', 'list-comparison', 'csv-merge-join', 'data-file-converter', 'data-quality-checker', 'data-cleaner', 'summarise-reshape', 'prepare-import'].includes(tool)) return;
       const detail = { name, tool };
       for (const key of allowed.get(name)) {
         if (values[key].includes(metadata[key])) detail[key] = metadata[key];

@@ -9,6 +9,7 @@
   const status = document.getElementById('diff-status');
   const previous = document.getElementById('previous');
   const next = document.getElementById('next');
+  let latestResult = null;
   let worker = null, timer = null, changes = [], current = -1;
   const emit = (name, data) => {
     try { globalThis.DataTransformEvents?.emit(name, data); }
@@ -29,6 +30,7 @@
     output.removeAttribute('aria-busy');
   }
   function reset() {
+    latestResult = null; document.getElementById('textPreview').textContent = ''; document.getElementById('copyReport').disabled = document.getElementById('downloadReport').disabled = true; document.getElementById('exportStatus').textContent = '';
     stop(); results.hidden = true; output.replaceChildren();
     changes = []; current = -1; previous.disabled = next.disabled = true;
     say('');
@@ -76,6 +78,8 @@
     return element;
   }
   function render(result) {
+    latestResult = result; document.getElementById('copyReport').disabled = document.getElementById('downloadReport').disabled = false;
+    updateTextPreview();
     output.replaceChildren(); changes = []; current = -1;
     const fragment = document.createDocumentFragment();
     result.rows.forEach((row) => {
@@ -93,6 +97,35 @@
     say(result.identical ? 'The texts are identical.' : 'Comparison complete. Removed text is marked with a minus; added text with a plus.');
     emit('comparison_completed', { result: result.identical ? 'identical' : 'different' });
   }
+  function reportExport() {
+    const text = line => line ? line.parts.map(part => part.text).join('') : '';
+    const rows = latestResult.rows.map(row => [row.changed ? 'changed' : 'equal', String(row.left?.number ?? ''), text(row.left), String(row.right?.number ?? ''), text(row.right)]);
+    return CsvSuite.serialize(['Status','Original line','Original text','Updated line','Updated text'], rows.map(data => ({data})), {format:document.getElementById('exportFormat').value || 'csv',protect:true});
+  }
+  function updateTextPreview() {
+    const preview = document.getElementById('textPreview');
+    preview.textContent = '';
+    if (!latestResult) return;
+    try {
+      const text = reportExport().text;
+      preview.textContent = text.slice(0, 30000) + (text.length > 30000 ? '\n… Preview truncated; download or copy for the complete output.' : '');
+    } catch (error) { document.getElementById('exportStatus').textContent = error.message; }
+  }
+  document.getElementById('exportFormat').addEventListener('change', updateTextPreview);
+  document.getElementById('copyReport').addEventListener('click', async () => {
+    if (!latestResult) return;
+    const snapshot = latestResult;
+    try { await navigator.clipboard.writeText(reportExport().text); if (snapshot === latestResult) document.getElementById('exportStatus').textContent = 'Report copied to clipboard.'; }
+    catch { if (snapshot === latestResult) document.getElementById('exportStatus').textContent = 'Copy failed. Download the report instead.'; }
+  });
+  document.getElementById('downloadReport').addEventListener('click', () => {
+    if (!latestResult) return;
+    try {
+      const report = reportExport(), link = document.createElement('a'), url = URL.createObjectURL(new Blob([report.text], {type:report.mime}));
+      link.href = url; link.download = 'text-comparison.' + report.extension; document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url),1000);
+      document.getElementById('exportStatus').textContent = 'Download started.';
+    } catch (error) { document.getElementById('exportStatus').textContent = error.message; }
+  });
   compare.addEventListener('click', () => {
     reset();
     if (original.value.length > 200000 || updated.value.length > 200000 ||
@@ -140,6 +173,12 @@
       stop(); say('The comparison could not start. Refresh the page and try again.', true);
       emit('comparison_failed', { reason: 'unavailable' });
     }
+  });
+  document.getElementById('example').addEventListener('click', () => {
+    reset();
+    original.value = 'Project update\nStatus: Draft\nOwner: Asha\nSend the report on Friday.\nRemove this old note.';
+    updated.value = 'Project update\nStatus: Reviewed\nOwner: Asha\nSend the report on Monday.\nAdd the revised budget.\nReady to share.';
+    say('Example loaded. Select Compare text to see additions, deletions and changed words.');
   });
   [original, updated].forEach((input) => input.addEventListener('input', reset));
   document.querySelectorAll('[data-clear]').forEach((button) => button.addEventListener('click', () => {

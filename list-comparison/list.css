@@ -8,3 +8,7 @@
 
 .frequency-preview{margin:14px 0;max-height:480px;overflow:auto;border:1px solid var(--border);border-radius:6px;background:var(--input)}.frequency-preview table{width:100%;border-collapse:separate;border-spacing:0;font-size:14px}.frequency-preview th,.frequency-preview td{padding:10px 14px;text-align:right;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums}.frequency-preview th{position:sticky;top:0;background:var(--soft);white-space:nowrap}.frequency-preview th:first-child,.frequency-preview td:first-child{text-align:left;min-width:180px;max-width:500px;overflow-wrap:anywhere;white-space:pre-wrap;font-family:ui-monospace,monospace}.frequency-preview td{white-space:nowrap}
 @media print{.frequency-preview{max-height:none}}
+
+.list-entry-heading{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px 20px;margin-bottom:16px}.list-entry-heading .actions{gap:10px}.list-entry .list-inputs{margin-bottom:24px}.comparison-settings-heading{margin-bottom:16px}
+@media(max-width:700px){.list-entry-heading{align-items:flex-start}.list-entry-heading .actions{flex-wrap:wrap}}
+@media print{.list-entry{display:none}}

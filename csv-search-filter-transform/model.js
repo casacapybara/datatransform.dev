@@ -109,6 +109,7 @@
   function transform(items, changes) {
     if (changes.length > 100 || changes.some(c => typeof c.value !== 'string' || c.value.length > 10000 || (c.type === 'replace' && (typeof c.find !== 'string' || c.find.length > 10000)))) throw new Error('Use at most 100 changes and 10,000 characters per find or replacement value.');
     if (changes.some(change => change.type === 'replace' && !change.find)) throw new Error('Enter text to find for each active find-and-replace change.');
+    if (changes.some(change => ['removePrefix','removeSuffix'].includes(change.type) && !change.value)) throw new Error('Enter the literal prefix or suffix to remove.');
     const prepared = changes.map(change => {
       if (change.type !== 'replace') return change;
       const pattern = change.find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -125,10 +126,63 @@
             if (length > LIMITS.outputCharacters) throw new Error('A replacement would exceed 20 million characters in one cell. Use a shorter replacement or fewer matches.');
           }
           data[change.column] = source.replace(change.regex, () => change.value);
-        } else data[change.column] = change.value;
+        } else if (change.type === 'trim') data[change.column] = data[change.column].trim();
+        else if (change.type === 'lower') data[change.column] = data[change.column].toLowerCase();
+        else if (change.type === 'upper') data[change.column] = data[change.column].toUpperCase();
+        else if (change.type === 'removePrefix') { if (data[change.column].startsWith(change.value)) data[change.column] = data[change.column].slice(change.value.length); }
+        else if (change.type === 'removeSuffix') { if (data[change.column].endsWith(change.value)) data[change.column] = data[change.column].slice(0,-change.value.length); }
+        else data[change.column] = change.value;
       }
       return {...item, data};
     });
+  }
+  function changeColumns(headers, items, options) {
+    if (options.mode === 'none') return {headers: [...headers], items};
+    if (!['split','combine'].includes(options.mode)) throw new Error('Choose split or combine columns.');
+    if (typeof options.separator !== 'string' || options.separator.length > 1000) throw new Error('Separators allow up to 1,000 characters.');
+    const validColumn = c => Number.isInteger(c) && c >= 0 && c < headers.length;
+    let names, convert;
+    if (options.mode === 'split') {
+      if (!validColumn(options.column)) throw new Error('Choose a column to split.');
+      if (!options.separator) throw new Error('Enter a separator to split on.');
+      if (!Number.isInteger(options.count) || options.count < 2 || options.count > 100) throw new Error('Split into between 2 and 100 new columns.');
+      if (typeof options.name !== 'string' || !options.name.trim() || options.name.trim().length > 200) throw new Error('Enter a split column name prefix of up to 200 characters.');
+      names = Array.from({length:options.count}, (_,i) => `${options.name.trim()} ${i+1}`);
+      convert = item => {
+        const source = item.data[options.column], parts = []; let start = 0;
+        for (let i = 0; i < options.count-1; i++) {
+          const end = source.indexOf(options.separator,start);
+          if (end < 0) break;
+          parts.push(source.slice(start,end)); start = end+options.separator.length;
+        }
+        parts.push(source.slice(start));
+        while (parts.length < options.count) parts.push('');
+        return options.trim ? parts.map(v=>v.trim()) : parts;
+      };
+    } else {
+      if (!Array.isArray(options.columns) || options.columns.length < 2 || options.columns.some(c=>!validColumn(c)) || new Set(options.columns).size !== options.columns.length) throw new Error('Choose at least two different columns to combine.');
+      if (typeof options.name !== 'string' || !options.name.trim() || options.name.trim().length > 200) throw new Error('Enter a combined column name of up to 200 characters.');
+      names = [options.name.trim()];
+      convert = item => {
+        let parts = options.columns.map(c=>options.trim ? item.data[c].trim() : item.data[c]);
+        if (options.skipEmpty) parts = parts.filter(v=>v!=='');
+        const size = parts.reduce((n,v)=>n+v.length,0)+Math.max(0,parts.length-1)*options.separator.length;
+        if (size > LIMITS.outputCharacters) throw new Error('A combined value exceeds 20 million characters. Use a shorter separator or fewer columns.');
+        return [parts.join(options.separator)];
+      };
+    }
+    const used = new Set(headers);
+    names = names.map(base => { let name = base, n = 2; while(used.has(name)) name = `${base} (${n++})`; used.add(name); return name; });
+    const outputHeaders = [...headers,...names];
+    if (outputHeaders.length > LIMITS.columns || (items.length+1)*outputHeaders.length > LIMITS.cells) throw new Error('Column changes exceed 100 columns or 500,000 cells including headers. Split into fewer columns or filter to fewer rows.');
+    let characters = outputHeaders.reduce((n,v)=>n+v.length,0);
+    const output = items.map(item => {
+      const data = [...item.data,...convert(item)];
+      characters += data.reduce((n,v)=>n+v.length,0);
+      if (characters > LIMITS.outputCharacters) throw new Error('Changed columns exceed 20 million characters. Filter to fewer rows or use a shorter separator.');
+      return {...item,data};
+    });
+    return {headers:outputHeaders,items:output};
   }
   function appendManual(items, manualRows, width) {
     if (items.length + manualRows.length > LIMITS.rows) throw new Error('Combined output exceeds 20,000 rows. Reduce matching or manual rows.');
@@ -217,6 +271,16 @@
       if (outputSize > LIMITS.outputCharacters) throw new Error('Output exceeds 20 million characters. Reduce rows, columns or repeated matches.');
       return text;
     }
+    if (['txt', 'md'].includes(options.format)) {
+      const markdown = value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/([\\`*_{}\[\]()#+.!|~\-])/g, '\\$1').replace(/\r\n|\r|\n/g, '<br>');
+      const plain = value => { const s = String(value); return /["\t\r\n]/.test(s) || s === '' ? '"' + s.replace(/"/g, '""') + '"' : s; };
+      const line = row => account(options.format === 'md' ? '| ' + row.map(markdown).join(' | ') + ' |' : row.map(plain).join('\t'));
+      const lines = [line(names)];
+      if (options.format === 'md') lines.push('| ' + names.map(() => '---').join(' | ') + ' |');
+      for (const row of matrix) lines.push(line(row));
+      return {text: lines.join('\n'), extension: options.format, mime: options.format === 'md' ? 'text/markdown;charset=utf-8' : 'text/plain;charset=utf-8', preview: {headers: names, rows: matrix.slice(0, 100)}};
+    }
+    if (!['csv', 'json', 'js'].includes(options.format)) throw new Error('Choose a supported output format.');
     if (options.format === 'csv') return {text: [names, ...matrix].map(row => account(row.length === 1 && row[0] === '' ? '""' : row.map(v => escapeCell(v, options.protect)).join(','))).join('\r\n'), extension: 'csv', mime: 'text/csv;charset=utf-8', preview: {headers: names.map(n => protectCell(n, options.protect)), rows: matrix.slice(0, 100).map(row => row.map(v => protectCell(v, options.protect)))}};
     const splitIndex = options.split ? projection.findIndex(p => headers[p.index].toLowerCase() === options.splitColumn.trim().toLowerCase()) : -1;
     if (options.split && splitIndex < 0) throw new Error('Choose an included output column to split into an array.');
@@ -233,7 +297,7 @@
       return obj;
     });
     // Serialize properties in the chosen order, including numeric-looking column names.
-    const indent = Number(options.indent), gap = ' '.repeat(indent);
+    const indent = Number(options.indent ?? 2), gap = ' '.repeat(indent);
     const objects = data.map(obj => {
       const props = names.map(name => {
         const value = JSON.stringify(obj[name], null, indent);
@@ -246,5 +310,5 @@
     if (options.format === 'js') text = `const ${variableName(options.variable)} = ${text};`;
     return {text, extension: options.format === 'js' ? 'js' : 'json', mime: options.format === 'js' ? 'text/javascript;charset=utf-8' : 'application/json;charset=utf-8', preview: {headers: names, rows: data.slice(0, 100).map(obj => names.map(name => Array.isArray(obj[name]) ? JSON.stringify(obj[name]) : obj[name]))}};
   }
-  return {LIMITS, parse, terms, filter, transform, appendManual, deduplicate, sortRows, serialize, variableName};
+  return {LIMITS, parse, terms, filter, transform, changeColumns, appendManual, deduplicate, sortRows, serialize, variableName};
 });

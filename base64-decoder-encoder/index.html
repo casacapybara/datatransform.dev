@@ -24,7 +24,7 @@
 <button type="button" class="button" data-group="mode" data-panel="encode" aria-pressed="false" aria-controls="encode">Encode to Base64</button></div>
 <section id="decode" aria-label="Decode Base64">
 <div class="inputs base64-grid"><section class="panel" aria-labelledby="decode-input-heading">
-<div class="input-heading"><h2 id="decode-input-heading"><label for="base64Input">Base64 input</label></h2><div class="actions"><button id="pasteDecode" type="button" class="button small" hidden>Paste</button><button id="clearDecode" type="button" class="button small">Clear</button></div></div>
+<div class="input-heading"><h2 id="decode-input-heading"><label for="base64Input">Base64 input</label></h2><div class="actions"><button id="exampleDecode" class="button small" type="button">Try an example</button><button id="pasteDecode" type="button" class="button small" hidden>Paste</button><button id="clearDecode" type="button" class="button small">Clear</button></div></div>
 <textarea id="base64Input" spellcheck="false" autocomplete="off" autocapitalize="off" aria-describedby="base64-limits decode-help" placeholder="Paste Base64 or a Base64 data URL"></textarea>
 <p id="decode-help" class="input-help">Whitespace is ignored. Standard and URL-safe Base64 are accepted, with or without padding.</p>
 <button id="decodeBtn" type="button" class="button primary">Decode</button>
@@ -38,7 +38,7 @@
 </section></div></section>
 <section id="encode" aria-label="Encode to Base64" hidden>
 <div class="inputs base64-grid"><section class="panel" aria-labelledby="encode-input-heading">
-<div class="input-heading"><h2 id="encode-input-heading">Source</h2><button id="clearEncode" type="button" class="button small">Clear</button></div>
+<div class="input-heading"><h2 id="encode-input-heading">Source</h2><div class="actions"><button id="exampleEncode" class="button small" type="button">Try an example</button><button id="clearEncode" type="button" class="button small">Clear</button></div></div>
 <div class="actions base64-modes" role="group" aria-label="Source type"><button type="button" class="button" data-group="source" data-source="file" aria-pressed="true">File</button><button type="button" class="button" data-group="source" data-source="text" aria-pressed="false">Text</button></div>
 <div id="fileSource"><div id="dropzone" class="base64-dropzone"><label for="fileInput">Choose a file or drop it here</label><input type="file" id="fileInput" aria-describedby="base64-limits"></div><p id="fileInfo" class="input-help" role="status">No file selected.</p></div>
 <div id="textSource" hidden><label for="plainTextInput">Text to encode</label><textarea id="plainTextInput" spellcheck="false" autocomplete="off" autocapitalize="off" aria-describedby="base64-limits" placeholder="Enter text to encode as UTF-8"></textarea></div>

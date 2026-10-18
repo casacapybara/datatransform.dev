@@ -67,3 +67,52 @@ test('empty filters, replacement validation and numeric sorting refresh or inval
   assert.equal(h.node('download').disabled,true);assert.match(h.node('exportStatus').textContent,/finite numbers/);
   h.click('clearSort');assert.equal(h.node('download').disabled,false);
 });
+test('simple cleanup actions refresh the CSV output without requiring a replacement value',()=>{
+ const h=harness();h.load('name\n" ALICE "');h.click('addChange');h.node('change-column-0').value='0';h.node('change-column-0').listeners.change();
+ for(const [type,expected]of [['trim','ALICE'],['lower',' alice '],['upper',' ALICE ']]){h.node('change-type-0').value=type;h.node('change-type-0').listeners.change();assert.equal(h.node('download').disabled,false);assert.equal(M.parse(h.node('textPreview').textContent).rows[0].data[0],expected);}
+ h.node('change-type-0').value='removePrefix';h.node('change-type-0').listeners.change();assert.equal(h.node('download').disabled,true);h.edit('change-value-0',' A');assert.equal(M.parse(h.node('textPreview').textContent).rows[0].data[0],'LICE ');
+});
+
+test('plain text and Markdown use the same full output for copy and correctly named downloads',async()=>{
+ const h=harness();h.load('id,name\n001,"a|b"');
+ for(const format of ['txt','md']){h.edit('outputFormat',format);await h.click('copy');assert.equal(h.context.copied,h.node('textPreview').textContent);h.click('download');assert.equal(h.downloads.at(-1),'csv-suite-output.'+format);}
+});
+test('split controls generate preview columns and invalid settings disable stale exports',async()=>{
+ const h=harness();h.load('id,tags\n001,a|b|c');h.node('columnMode').value='split';h.node('columnMode').listeners.change();assert.equal(h.node('download').disabled,true);
+ h.node('columnSplitSource').value='1';h.node('columnSplitSource').listeners.change();h.node('columnSeparator').value='pipe';h.node('columnSeparator').listeners.change();
+ await h.click('copy');assert.deepEqual(M.parse(h.context.copied).rows[0].data,['001','a|b|c','a','b|c']);
+ h.edit('rename-2','First tag');h.edit('criteria','absent');assert.match(h.node('textPreview').textContent,/First tag/);h.edit('criteria','');assert.match(h.node('textPreview').textContent,/First tag/);
+ h.edit('columnSplitCount','0');assert.equal(h.node('download').disabled,true);await h.click('copy');assert.equal(M.parse(h.context.copied).headers[2],'Part 1');
+ h.edit('columnSplitCount','3');assert.equal(h.node('download').disabled,false);assert.equal(M.parse(h.node('textPreview').textContent).rows[0].data[4],'c');
+ h.node('columnMode').value='none';h.node('columnMode').listeners.change();assert.equal(M.parse(h.node('textPreview').textContent).headers.length,2);
+});
+test('combine selection and ordering affect every output and are reset by new loads',()=>{
+ const h=harness();h.load('first,middle,last\nAlice,,Smith');h.node('columnMode').value='combine';h.node('columnMode').listeners.change();assert.equal(h.node('download').disabled,true);
+ for(const index of [0,2]){h.node(`combine-column-${index}`).checked=true;h.node(`combine-column-${index}`).listeners.change();}
+ h.node('columnSeparator').value='space';h.node('columnSeparator').listeners.change();assert.equal(M.parse(h.node('textPreview').textContent).rows[0].data[3],'Alice Smith');
+ h.node('combine-move-2-up').listeners.click();h.node('combine-move-2-up').listeners.click();assert.equal(M.parse(h.node('textPreview').textContent).rows[0].data[3],'Smith Alice');
+ h.edit('outputFormat','json');assert.equal(JSON.parse(h.node('textPreview').textContent)[0].Combined,'Smith Alice');
+ h.load('id,name\n001,New');assert.equal(h.node('columnMode').value,'none');assert.equal(h.node('combine-column-0').checked,false);assert.equal(M.parse(h.node('textPreview').textContent).headers.length,2);
+ h.click('reset');assert.equal(h.node('columnTools').disabled,true);assert.equal(h.node('download').disabled,true);
+});
+test('split/combine uses edited and added rows after source-based deduplication and sorting',()=>{
+ const h=harness();h.load('id,tags\n001,a|b');h.click('addChange');h.node('change-column-0').value='1';h.node('change-column-0').listeners.change();h.edit('change-value-0','edited|value');
+ h.node('manual-value-0').value='002';h.node('manual-value-1').value='manual|row';h.click('addManual');
+ h.node('columnMode').value='split';h.node('columnMode').listeners.change();h.node('columnSplitSource').value='1';h.node('columnSplitSource').listeners.change();h.node('columnSeparator').value='pipe';h.node('columnSeparator').listeners.change();
+ assert.deepEqual(M.parse(h.node('textPreview').textContent).rows.map(r=>r.data.slice(2)),[['edited','value'],['manual','row']]);
+ const include=h.node('outputColumns').children[1].children[0].children[0];include.checked=false;include.listeners.change();assert.equal(M.parse(h.node('textPreview').textContent).headers.includes('tags'),false);
+ h.click('restoreColumns');assert.equal(M.parse(h.node('textPreview').textContent).headers.length,4);
+});
+
+
+test('example replaces edited data and cancels pending file reads', async () => {
+  const h = harness(); h.load('old\nvalue'); h.edit('criteria', 'absent');
+  let finish;
+  const pending = h.file({size:10,name:'late.csv',text:()=>new Promise(resolve=>finish=resolve)});
+  h.click('example'); finish('old\nlate'); await pending;
+  assert.equal(h.node('criteria').value, '');
+  assert.match(h.node('textPreview').textContent, /001,Asha Patel/);
+  assert.match(h.node('outputCount').textContent, /5 rows/);
+  assert.equal(h.node('download').disabled, false);
+  h.click('reset'); assert.equal(h.node('download').disabled, true);
+});

@@ -143,3 +143,51 @@ test('empty constraints ignore unused term limits and blank single-column manual
 test('replacement expansion stops before allocating oversized output cells', () => {
   assert.throws(()=>M.transform([{data:['a'.repeat(10000)]}],[{type:'replace',column:0,find:'a',value:'x'.repeat(10000)}]), /20 million/);
 });
+test('simple text actions compose in order with literal edge matching and preserve source',()=>{
+ const {items}=rows('name\n" .*ALICE$ "');
+ const result=M.transform(items,[{type:'trim',column:0,value:''},{type:'removePrefix',column:0,value:'.*'},{type:'removeSuffix',column:0,value:'$'},{type:'lower',column:0,value:''}]);
+ assert.equal(result[0].data[0],'alice');assert.equal(items[0].data[0],' .*ALICE$ ');
+ assert.equal(M.transform(result,[{type:'upper',column:0,value:''}])[0].data[0],'ALICE');
+ assert.throws(()=>M.transform(items,[{type:'removePrefix',column:0,value:''}]),/literal prefix/);
+});
+const splitOptions={mode:'split',column:1,count:3,name:'Part',separator:'|',trim:false};
+test('splitting preserves original values, empty pieces, literal separators and overflow',()=>{
+ const {d,items}=rows('id,tags\n001,a||b|c\n002,alone\n003,|\n004,');
+ const result=M.changeColumns(d.headers,items,splitOptions);
+ assert.deepEqual(result.headers,['id','tags','Part 1','Part 2','Part 3']);
+ assert.deepEqual(result.items.map(r=>r.data.slice(2)),[['a','','b|c'],['alone','',''],['','',''],['','','']]);
+ assert.deepEqual(items[0].data,['001','a||b|c']);assert.equal(result.items[0].record,2);
+ const literal=M.changeColumns(['v'],[{data:[' a.* b.* c'],record:2,criteria:[],columns:[]}],{...splitOptions,column:0,count:2,separator:'.*',trim:true});
+ assert.deepEqual(literal.items[0].data,[' a.* b.* c','a','b.* c']);
+});
+test('combining respects chosen order, empty policy, whitespace, Unicode and empty separators',()=>{
+ const headers=['first','middle','last'],items=[{data:[' Élodie ','','張'],record:'Manual',criteria:[],columns:[]}];
+ const options={mode:'combine',columns:[2,1,0],name:'Full name',separator:' / ',trim:false,skipEmpty:false};
+ assert.equal(M.changeColumns(headers,items,options).items[0].data[3],'張 /  /  Élodie ');
+ assert.equal(M.changeColumns(headers,items,{...options,trim:true,skipEmpty:true}).items[0].data[3],'張 / Élodie');
+ assert.equal(M.changeColumns(headers,items,{...options,separator:'',trim:true}).items[0].data[3],'張Élodie');
+ assert.equal(items[0].data[0],' Élodie ');
+});
+test('generated column names avoid collisions and header-only output works',()=>{
+ const result=M.changeColumns(['v','Part 1','Part 1 (2)'],[],{...splitOptions,column:0,count:2});
+ assert.deepEqual(result.headers,['v','Part 1','Part 1 (2)','Part 1 (3)','Part 2']);
+ assert.equal(M.serialize(result.headers,result.items,opts).text,'v,Part 1,Part 1 (2),Part 1 (3),Part 2');
+ assert.equal(M.changeColumns(['a'],[],{mode:'none'}).headers[0],'a');
+});
+test('split/combine settings reject invalid choices and enforce column/cell/character budgets',()=>{
+ for(const update of [{separator:''},{column:''},{count:1},{count:2.5},{name:' '},{separator:'x'.repeat(1001)}])assert.throws(()=>M.changeColumns(['a','b'],[],{...splitOptions,...update}));
+ for(const columns of [[],[0],[0,0],[0,2],['0',1]])assert.throws(()=>M.changeColumns(['a','b'],[],{mode:'combine',columns,name:'x',separator:''}));
+ assert.throws(()=>M.changeColumns(Array(99).fill('a'),[],{...splitOptions}),/100 columns/);
+ assert.throws(()=>M.changeColumns(Array(24).fill('a'),Array(20000).fill({data:Array(24).fill('')}),{...splitOptions,count:2}),/500,000/);
+ assert.throws(()=>M.changeColumns(['a','b'],[{data:['x'.repeat(10000001),'']}],{mode:'combine',columns:[0,1],name:'x',separator:'',skipEmpty:true}),/20 million/);
+});
+test('generated columns export in all formats with helper metadata and formula protection',()=>{
+ const {d,items}=rows('id,tags\n001,=SUM(A1)|東京');
+ const r=M.changeColumns(d.headers,items,{...splitOptions,count:2});
+ for(const format of ['csv','json','js','txt','md']){
+  const result=M.serialize(r.headers,r.items,{...opts,format,helpers:true,protect:true,projection:[{index:3,name:'Second'},{index:2,name:'First'},{index:0,name:'ID'}]});
+  assert.deepEqual(result.preview.headers,['Source record','Matched criteria','Matched columns','Second','First','ID']);
+  assert.match(result.text,/001/);assert.match(result.text,/東京/);
+  if(format==='csv')assert.match(result.text,/'=SUM/);
+ }
+});

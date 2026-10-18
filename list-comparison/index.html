@@ -6,13 +6,43 @@
 <link rel="canonical" href="https://datatransform.dev/list-comparison/">
 <link rel="icon" type="image/png" sizes="32x32" href="../assets/brand/favicon-32.png"><link rel="icon" type="image/svg+xml" href="../assets/brand/favicon.svg">
 <script src="../assets/theme.js"></script><link rel="stylesheet" href="../assets/site.css"><link rel="stylesheet" href="./list.css">
-<script src="../assets/events.js" defer></script><script src="./model.js" defer></script><script src="./app.js" defer></script>
+<script src="../assets/events.js" defer></script><script src="../csv-search-filter-transform/model.js" defer></script><script src="./model.js" defer></script><script src="./app.js" defer></script>
 </head><body><a class="skip-link" href="#main">Skip to tool</a>
 <header class="site-header"><div class="header-inner"><a class="brand" href="../" aria-label="DataTransform home"><img class="brand-logo brand-logo-light" src="../assets/brand/logo-light.svg" alt="datatransform.dev" width="266" height="44"><img class="brand-logo brand-logo-dark" src="../assets/brand/logo-dark.svg" alt="datatransform.dev" width="266" height="44"></a><button id="theme-toggle" class="theme-toggle" type="button" role="switch" aria-checked="false"><span>Dark mode</span><span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span></button></div></header>
 <main id="main">
 <div class="page-heading"><h1>List comparison</h1><p>Find shared items and items unique to either list. Paste one item per line.</p><p class="privacy-note">Your lists stay in this browser. Nothing is uploaded. <a href="../privacy/">Privacy details</a></p></div>
+<p class="input-help">Comparing CSV records by ID? Use <a href="../compare-tables/">Compare tables</a> to find added records, removed records and changed cells.</p>
 <noscript><p class="panel">Enable JavaScript to compare lists.</p></noscript>
+    <section class="list-entry" aria-labelledby="listInputHeading">
+      <div class="list-entry-heading"><h2 id="listInputHeading">Enter your lists</h2><div class="actions"><button id="example" class="button" type="button">Try an example</button><button id="clearBtn" class="button" type="button">Clear lists</button></div></div>
+    <div class="inputs list-inputs">
+      <div class="panel">
+        <div class="list-heading">
+          <label for="leftName">Left list name</label>
+          <span class="count-pill" id="leftCount">0 items</span>
+        </div>
+        <input class="name-input" maxlength="100" autocomplete="off" id="leftName" type="text" value="Left List" />
+
+        <label class="sr-only" for="leftText">Left list items</label>
+        <textarea id="leftText" spellcheck="false" autocomplete="off" placeholder="Paste the first list here, one item per line..."></textarea>
+      </div>
+
+      <div class="panel">
+        <div class="list-heading">
+          <label for="rightName">Right list name</label>
+          <span class="count-pill" id="rightCount">0 items</span>
+        </div>
+        <input class="name-input" maxlength="100" autocomplete="off" id="rightName" type="text" value="Right List" />
+
+        <label class="sr-only" for="rightText">Right list items</label>
+        <textarea id="rightText" spellcheck="false" autocomplete="off" placeholder="Paste the second list here, one item per line..."></textarea>
+      </div>
+    </div>
+
+    </section>
+
     <section class="panel list-toolbar" aria-label="Comparison settings">
+      <h2 class="comparison-settings-heading">Choose a comparison</h2>
       <div class="comparison-buttons" aria-label="Comparison mode">
         <button class="button" aria-pressed="true" data-mode="both">Show items in both lists</button>
         <button class="button" aria-pressed="false" data-mode="leftOnly">Show items only in left list</button>
@@ -64,29 +94,6 @@
       <h3>Cleanup preview</h3><p class="input-help">First 3 lines per side, before and after. Values use JSON string notation to show whitespace. Each value is limited to 300 preview characters.</p><pre id="cleanupPreview" tabindex="0" aria-label="Cleanup preview"></pre>
     </details>
 
-    <section class="inputs list-inputs">
-      <div class="panel">
-        <div class="list-heading">
-          <label for="leftName">Left list name</label>
-          <span class="count-pill" id="leftCount">0 items</span>
-        </div>
-        <input class="name-input" maxlength="100" autocomplete="off" id="leftName" type="text" value="Left List" />
-
-        <label class="sr-only" for="leftText">Left list items</label>
-        <textarea id="leftText" spellcheck="false" autocomplete="off" placeholder="Paste the first list here, one item per line..."></textarea>
-      </div>
-
-      <div class="panel">
-        <div class="list-heading">
-          <label for="rightName">Right list name</label>
-          <span class="count-pill" id="rightCount">0 items</span>
-        </div>
-        <input class="name-input" maxlength="100" autocomplete="off" id="rightName" type="text" value="Right List" />
-
-        <label class="sr-only" for="rightText">Right list items</label>
-        <textarea id="rightText" spellcheck="false" autocomplete="off" placeholder="Paste the second list here, one item per line..."></textarea>
-      </div>
-    </section>
 
     <section class="panel">
       <div class="results-header">
@@ -111,12 +118,11 @@
         <div class="result-actions">
           <button class="button" id="copyBtn" disabled>Copy output</button>
           <button class="button" id="downloadBtn" disabled>Export .txt</button>
-          <button class="button" id="clearBtn">Clear lists</button>
         </div>
       </div>
 
-      <div class="export-format"><label for="outputFormat">Copy and export format</label><select id="outputFormat"><option value="report">Report with headings</option><option value="items">Items only</option></select><p id="formatHelp" class="input-help"></p></div>
-      <p id="status" class="message" role="status" aria-atomic="true"></p><div id="frequencyPreview" class="frequency-preview" tabindex="0" role="region" aria-label="Frequency counts" hidden></div><pre id="output" tabindex="0" aria-label="Comparison report"></pre>
+      <div class="export-format"><label for="outputFormat">Copy and export format</label><select id="outputFormat"><option value="report">Plain text report (.txt)</option><option value="items">Items only (.txt)</option><option value="csv">CSV (.csv)</option><option value="json">JSON (.json)</option><option value="md">Markdown (.md)</option></select><p id="formatHelp" class="input-help"></p></div>
+      <p id="status" class="message" role="status" aria-atomic="true"></p><div id="frequencyPreview" class="frequency-preview" tabindex="0" role="region" aria-label="Frequency counts" hidden></div><pre id="output" tabindex="0" aria-label="Comparison report"></pre><details id="formattedPanel" class="text-preview" hidden><summary>View formatted output</summary><p class="hint">Preview limited to 30,000 characters. Copy and download include the complete output.</p><pre id="textPreview" tabindex="0" aria-label="Formatted output preview"></pre></details>
       <p class="small-note">
         Shared items use the left list’s spelling. With deduplication off, shared items retain the left list’s repeats; each exclusive group retains its own repeats. Counts above refer to displayed occurrences. The merged list always contains distinct items. Combined differences retains exclusive repeats when deduplication is off. Frequency comparison counts every occurrence before deduplication and shows left count minus right count. Its item column uses JSON string notation to keep whitespace visible.
       </p>
@@ -124,6 +130,6 @@
 
 <div class="help-columns"><section><h2>Compare two lists</h2><p>Paste one list on each side, then choose shared items, items only on the left, items only on the right, a merged distinct list, combined differences, frequency counts, or the full report. Results update automatically. Name the lists to make the exported report easier to read.</p><p>For example, compare a left list containing Apple and Pear with a right list containing Pear and Plum. Pear is shared, Apple appears only on the left, and Plum appears only on the right.</p><p>Matching ignores case and surrounding whitespace by default. Turn off either option for an exact comparison of that aspect. Trimming also changes displayed values. Optional cleanup transforms both comparison keys and output values while preserving the pasted source. Clear a prefix or suffix, or disable a cleanup checkbox, to restore those source values in the output. Sorting uses your browser’s locale with natural numeric order, so item2 comes before item10. Turn sorting off to retain source order.</p></section>
 <section><h2>Privacy and limits</h2><p>Lists, names and reports remain in memory. The tool does not upload them, store them or put them in URLs. Copy writes to the clipboard only when selected. Export saves a UTF-8 text file. Clear lists removes both inputs and the report; names and options remain. Reloading clears tool data. Only the shared theme preference is saved. See <a href="../privacy/">privacy and analytics</a>.</p><p>Each list allows 1,000,000 UTF-16 code units and 20,000 lines, including blank lines. Names allow 100 code units. Cleanup fields allow 1,000 code units each, and transformed data allows 1,000,000 per list. Reports allow 10,000,000 code units; the preview shows the first 30,000. Copy and export include the complete report. Large comparisons may briefly pause the page.</p><p>LF, CRLF and CR line endings are supported. With blank lines included, an empty input has no items, but a trailing line break adds an empty item. Whitespace-only lines count as blank only when trimming is enabled. Matching uses lowercase text without accent removal. Unicode NFC normalization is optional. Frequency counts use the same matching and cleanup rules, independent of the deduplication checkbox. With sorting off, the merged list and frequency rows follow first appearance on the left, then new items from the right; combined differences lists left-only items before right-only items. Items-only output has no headings or counts and is available for each list view. An empty result exports an empty file, while an empty item exports a line break. CSV fields and fuzzy matches are not supported. Modern JavaScript and Blob URLs are required. Clipboard access may require HTTPS and permission; export remains available if copying fails.</p></section></div>
-</main>
+<section class="related-tools" aria-labelledby="relatedHeading"><h2 id="relatedHeading">Need to do something else?</h2><div class="tool-grid"><a class="panel tool-card" href="../csv-merge-join/"><h3>Match complete records</h3><p>Bring columns from two CSV tables together using a shared ID.</p><span class="open-tool">Match tables →</span></a><a class="panel tool-card" href="../csv-search-filter-transform/"><h3>Filter and edit a table</h3><p>Search rows, change values and arrange output columns.</p><span class="open-tool">Work with CSV →</span></a></div></section></main>
 <footer class="site-footer"><div class="footer-inner"><span>Made with 💚 in London</span><nav aria-label="Footer"><a href="../about/">About</a><a href="../privacy/">Privacy</a><a href="../contact/">Contact</a><a href="../terms/">Terms</a><a href="https://github.com/casacapybara/datatransform.dev/tree/main/list-comparison" rel="noreferrer">Source</a></nav></div></footer>
 </body></html>

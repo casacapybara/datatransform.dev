@@ -71,8 +71,22 @@
       if (!controls.row.hidden) visible++;
     }
     $('emptyTable').hidden = visible > 0;
-    $('copyResult').disabled = !valid;
+    $('downloadResult').disabled = $('copyResult').disabled = !valid;
     copyText = valid ? [`Decimal: ${value}`, `Hex: 0x${value.toString(16).toUpperCase()}`, `Binary: 0b${value.toString(2)}`, '', ...bits.map(bit => `Bit ${bit} (${1n << BigInt(bit)}): ${names.get(bit) || 'Unnamed'}`), ...(bits.length ? [] : ['No bits are enabled.'])].join('\n') : '';
+    updateTextPreview();
+  }
+  function updateTextPreview() {
+    $('textPreview').textContent = '';
+    if (value !== null) {
+      try {
+        const text = resultExport().text;
+        $('textPreview').textContent = text.slice(0, 30000) + (text.length > 30000 ? '\n… Preview truncated; download or copy for the complete output.' : '');
+      } catch (error) { status('copyStatus', error.message, 'error'); }
+    }
+    try {
+      const text = JSON.stringify(M.configuration($('configName').value, width, names), null, 2) + '\n';
+      $('configPreview').textContent = text.slice(0, 30000) + (text.length > 30000 ? '\n… Preview truncated; download or copy for the complete output.' : '');
+    } catch (error) { $('configPreview').textContent = error.message; }
   }
   function decode() {
     try {
@@ -96,12 +110,21 @@
       $('applyNames').disabled = false;
     } catch (error) { status('bulkStatus', error.message, 'error'); }
   }
-  function download(text, filename) {
-    const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+  function download(text, filename, mime = 'application/json') {
+    const url = URL.createObjectURL(new Blob([text], { type: mime }));
     const anchor = document.createElement('a'); anchor.href = url; anchor.download = filename;
     document.body.append(anchor); anchor.click(); anchor.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   $('inputValue').addEventListener('input', () => { changed(); status('copyStatus', ''); decode(); });
+  $('example').addEventListener('click', () => {
+    changed(); loadSequence++;
+    width = 8; names = new Map([[0, 'Read'], [1, 'Write'], [2, 'Execute'], [3, 'Admin']]);
+    $('inputValue').value = '11'; $('bitWidth').value = '8'; $('configName').value = 'Example permissions';
+    $('bulkNames').value = ''; $('pasteFormat').value = 'names'; $('startBit').value = '0';
+    $('startBitGroup').hidden = false; $('tableFilter').value = 'all';
+    buildTable(); decode(); updateBulkPreview(); status('copyStatus', '');
+    status('configStatus', 'Example loaded. Value 11 enables Read, Write and Admin. Toggle a bit or edit a name to try it.', 'success');
+  });
   $('clearValue').addEventListener('click', () => { changed(); $('inputValue').value = '0'; status('copyStatus', ''); decode(); emit('bitwise_cleared'); });
   $('bitWidth').addEventListener('change', () => {
     const nextWidth = Number($('bitWidth').value);
@@ -138,9 +161,16 @@
     for (const { bit, name } of pendingNames) { names.set(bit, name); rows.get(bit).name.value = name; }
     refreshResult(); status('copyStatus', ''); $('bulkNames').value = ''; updateBulkPreview(); status('bulkStatus', `Applied ${count} flag names.`, 'success'); emit('bitwise_names_applied');
   });
-  $('configName').addEventListener('input', changed);
+  $('configName').addEventListener('input', () => { changed(); updateTextPreview(); });
   $('clearNames').addEventListener('click', () => {
     changed(); names.clear(); $('configName').value = ''; buildTable(); refreshResult(); status('copyStatus', ''); status('configStatus', 'Flag names cleared. The value and width have been kept.', 'success');
+  });
+  $('copyConfig').addEventListener('click', async () => {
+    const request = revision;
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(M.configuration($('configName').value, width, names), null, 2) + '\n');
+      if (request === revision) status('configStatus', 'Configuration JSON copied.', 'success');
+    } catch { if (request === revision) status('configStatus', 'Copy failed. Download the configuration instead.', 'error'); }
   });
   $('downloadConfig').addEventListener('click', () => {
     try {
@@ -165,11 +195,23 @@
       status('configStatus', 'Configuration loaded. Your input value has been kept; check the result if the width changed.', 'success'); emit('bitwise_configuration_loaded');
     } catch (error) { if (request === revision && sequence === loadSequence) { status('configStatus', error.message + ' Your configuration has been kept.', 'error'); emit('bitwise_failed'); } }
   });
+  function resultExport() {
+    const format = $('resultFormat').value || 'txt';
+    if (format === 'txt') return {text:copyText, extension:'txt', mime:'text/plain;charset=utf-8'};
+    const bits = Array.from({length:width}, (_, bit) => [value.toString(), String(width), String(bit), (1n << BigInt(bit)).toString(), names.get(bit) || '', String((value & (1n << BigInt(bit))) !== 0n)]);
+    return CsvSuite.serialize(['Value','Bit width','Bit','Mask','Name','Enabled'], bits.map(data => ({data})), {format,protect:true});
+  }
+  $('resultFormat').addEventListener('change', () => { changed(); status('copyStatus', ''); updateTextPreview(); });
+  $('downloadResult').addEventListener('click', () => {
+    if (value === null) return;
+    try { const result = resultExport(); download(result.text, 'bitwise-result.' + result.extension, result.mime); status('copyStatus', 'Result downloaded.', 'success'); }
+    catch (error) { status('copyStatus', error.message, 'error'); }
+  });
   $('copyResult').addEventListener('click', async () => {
     if (value === null) return;
     const request = revision;
     try {
-      await navigator.clipboard.writeText(copyText); if (request === revision) status('copyStatus', 'Result copied.', 'success'); emit('bitwise_copied');
+      await navigator.clipboard.writeText(resultExport().text); if (request === revision) status('copyStatus', 'Result copied.', 'success'); emit('bitwise_copied');
     } catch { if (request === revision) status('copyStatus', 'Clipboard access is unavailable. Select and copy the result text manually.', 'error'); }
   });
   buildTable(); decode(); updateBulkPreview(); emit('tool_opened');

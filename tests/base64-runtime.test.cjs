@@ -35,3 +35,20 @@ test('Base64 event metadata discards file and clipboard content and rejects unkn
   assert.equal(JSON.stringify(events[0]),JSON.stringify({name:'base64_encoded',tool:'base64-decoder-encoder',source:'file'}));
   context.DataTransformEvents.emit('base64_encoded',{source:'file'},'unknown');assert.equal(events.length,1);
 });
+
+
+test('examples decode and encode matching text and cancel a pending file encode', async () => {
+  const h = harness(); h.node('exampleDecode').listeners.click();
+  h.node('decodeBtn').listeners.click(); h.flush();
+  assert.equal(h.node('decodedPreview').children[0].textContent, 'Hello, world!');
+  let finish;
+  h.node('fileInput').files=[{name:'old.txt',size:3,arrayBuffer:()=>new Promise(resolve=>finish=resolve)}];
+  h.node('fileInput').listeners.change();
+  const pending=h.node('encodeBtn').listeners.click();h.flush();await Promise.resolve();
+  h.node('exampleEncode').listeners.click();finish(new TextEncoder().encode('old').buffer);await pending;
+  assert.equal(h.node('base64Output').value, '');
+  assert.equal(h.node('textSource').hidden, false);
+  const encoding=h.node('encodeBtn').listeners.click();h.flush();await encoding;
+  assert.equal(h.node('base64Output').value, h.node('base64Input').value);
+  h.node('clearEncode').listeners.click();assert.equal(h.node('downloadEncoded').disabled,true);
+});

@@ -13,7 +13,7 @@ function harness(throwEvents = false) {
   }
   function node(id){if(!nodes.has(id))nodes.set(id,element());return nodes.get(id);}
   node('inputValue').value='0';node('tableFilter').value='all';node('pasteFormat').value='names';node('startBit').value='0';node('bitWidth').value='64';
-  const context={BitwiseModel:model,document:{getElementById:node,createElement:element,body:{append(){}}},navigator:{},URL:{createObjectURL(){return 'blob:test';},revokeObjectURL(){}},Blob,setTimeout(){},DataTransformEvents:{emit(name,metadata,tool){if(throwEvents)throw new Error('analytics unavailable');events.push({name,metadata,tool});}}};
+  const context={CsvSuite:require('../csv-search-filter-transform/model.js'),BitwiseModel:model,document:{getElementById:node,createElement:element,body:{append(){}}},navigator:{},URL:{createObjectURL(){return 'blob:test';},revokeObjectURL(){}},Blob,setTimeout(){},DataTransformEvents:{emit(name,metadata,tool){if(throwEvents)throw new Error('analytics unavailable');events.push({name,metadata,tool});}}};
   vm.createContext(context);vm.runInContext(fs.readFileSync('bitwise-flag-decoder/app.js','utf8'),context);
   return {node,context,events,downloads,edit(id,value){node(id).value=value;node(id).listeners.input();},row(bit){return node('flagsTableBody').children[bit];},async load(file){node('configFile').files=[file];return node('configFile').listeners.change();}};
 }
@@ -49,4 +49,28 @@ test('optional hooks cannot break the decoder and bitwise events discard all met
   const events=[],context={document:{dispatchEvent(e){events.push(e.detail);}},CustomEvent:class{constructor(name,options){this.detail=options.detail;}}};vm.createContext(context);vm.runInContext(fs.readFileSync('assets/events.js','utf8'),context);
   context.DataTransformEvents.emit('bitwise_names_applied',{name:'secret',value:'11',filename:'private.json'},'bitwise-flag-decoder');
   assert.equal(JSON.stringify(events[0]),JSON.stringify({name:'bitwise_names_applied',tool:'bitwise-flag-decoder'}));
+});
+
+test('all result formats copy and download exact large masks',async()=>{
+ const h=harness();h.context.navigator.clipboard={writeText:async text=>h.context.copied=text};h.edit('inputValue','9223372036854775808');
+ for(const format of ['csv','json','txt','md']){h.node('resultFormat').value=format;h.node('resultFormat').listeners.change();await h.node('copyResult').listeners.click();assert.match(h.context.copied,/9223372036854775808/);assert.equal(h.node('textPreview').textContent,h.context.copied);h.node('downloadResult').listeners.click();assert.equal(h.downloads.at(-1),'bitwise-result.'+format);}
+ h.edit('inputValue','bad');assert.equal(h.node('textPreview').textContent,'');assert.equal(h.node('downloadResult').disabled,true);
+});
+
+test('configuration JSON can be copied independently of the decoded value',async()=>{
+ const h=harness();h.context.navigator.clipboard={writeText:async text=>h.context.copied=text};h.edit('inputValue','11');
+ h.edit('configName','Saved flags');await h.node('copyConfig').listeners.click();assert.equal(h.node('configPreview').textContent,h.context.copied);const config=JSON.parse(h.context.copied);assert.equal(config.bitWidth,64);assert.equal(config.version,1);assert.equal(config.value,undefined);
+ h.context.navigator.clipboard.writeText=async()=>{throw Error('denied');};await h.node('copyConfig').listeners.click();assert.match(h.node('configStatusText').textContent,/Copy failed/);
+});
+
+
+test('example replaces mask and labels and cancels pending configurations', async () => {
+  const h = harness(); let finish;
+  const pending = h.load({size:100,text:()=>new Promise(resolve=>finish=resolve)});
+  h.node('example').listeners.click(); finish(config('Late')); await pending;
+  assert.equal(h.node('resultDecimal').textContent, '11');
+  assert.equal(h.node('bitWidth').value, '8');
+  assert.equal(h.node('configName').value, 'Example permissions');
+  assert.match(h.node('enabledFlags').children.map(n=>n.textContent).join(' '), /Read.*Write.*Admin/);
+  assert.equal(h.node('copyResult').disabled, false);
 });
