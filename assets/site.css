@@ -13,4 +13,22 @@
 
 .related-tools{margin-top:36px}
 
+/* The tinted scrim keeps live HTML text readable over the decorative scene. */
+.hero-factory{position:relative;isolation:isolate;overflow:hidden;min-height:320px;display:flex;align-items:center;background:var(--soft);--hero-scrim:linear-gradient(90deg,rgba(214,230,224,.98) 0%,rgba(214,230,224,.93) 38%,rgba(214,230,224,.72) 57%,rgba(214,230,224,.08) 78%)}
+.hero-background{position:absolute;inset:0;z-index:-2;width:100%;height:100%;object-fit:cover;object-position:center}
+.hero-factory::after{content:"";position:absolute;inset:0;z-index:-1;background:var(--hero-scrim);pointer-events:none}
+.hero-factory .hero-copy{max-width:62%}
+.hero-factory h1{max-width:20ch;text-wrap:balance}
+.hero-factory .hero-description{max-width:66ch}
+:root[data-theme=dark] .hero-factory{--hero-scrim:linear-gradient(90deg,rgba(17,25,28,.98) 0%,rgba(17,25,28,.94) 38%,rgba(17,25,28,.8) 57%,rgba(17,25,28,.16) 100%)}
+@media(max-width:900px){.hero-factory .hero-copy{max-width:72%}}
+@media(max-width:700px){
+  .hero-factory{min-height:360px;padding-bottom:180px;align-items:flex-start;--hero-scrim:linear-gradient(180deg,rgba(214,230,224,.98) 0%,rgba(214,230,224,.96) 42%,rgba(214,230,224,.55) 68%,rgba(214,230,224,.08) 100%)}
+  .hero-factory::before{content:"";position:absolute;inset:-12px;z-index:-3;background:url('./hero/data-factory-scene.webp') 82% center/cover;filter:blur(10px)}
+  .hero-factory .hero-copy{max-width:100%}
+  .hero-factory h1{max-width:20ch}
+  .hero-background{inset:auto 0 0 auto;width:160%;height:auto;object-fit:contain;object-position:right bottom;mask-image:linear-gradient(180deg,transparent,#000 25%)}
+  :root[data-theme=dark] .hero-factory{--hero-scrim:linear-gradient(180deg,rgba(17,25,28,.98) 0%,rgba(17,25,28,.96) 42%,rgba(17,25,28,.65) 68%,rgba(17,25,28,.3) 100%)}
+}
+
 .text-preview{min-width:0;margin-top:16px;border-top:1px solid var(--border);padding-top:12px}.text-preview summary{cursor:pointer;color:var(--accent);font-size:14px;font-weight:600;min-height:44px;padding:9px 0}.text-preview .hint{font-size:13px;color:var(--muted);margin:6px 0 12px}.text-preview pre{max-height:400px;overflow:auto;white-space:pre;margin:12px 0 0;padding:16px;background:var(--input);border:1px solid var(--border);border-radius:6px;font:13px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace}.text-preview pre:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
