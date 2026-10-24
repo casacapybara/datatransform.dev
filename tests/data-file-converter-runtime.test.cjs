@@ -50,7 +50,7 @@ test('worksheet replacement, Excel export and unsupported file reads have explic
   await h.file({size:M.LIMITS.bytes+1,name:'too-big.csv',arrayBuffer:()=>{throw Error('must not read');}});assert.match(h.node('loadStatus').textContent,/5 MiB/);assert.equal(h.node('download').disabled,true);
 });
 test('worker timeout and worker errors cancel processing without stale results',()=>{
-  const h=harness();h.load('id\nx');h.flush(20000);assert.equal(h.workers.at(-1).terminated,true);assert.match(h.node('loadStatus').textContent,/20 seconds/);assert.equal(h.node('download').disabled,true);
+  const h=harness();h.load('id\nx');h.flush(120000);assert.equal(h.workers.at(-1).terminated,true);assert.match(h.node('loadStatus').textContent,/120 seconds/);assert.equal(h.node('download').disabled,true);
   h.load('id\ny');h.workers.at(-1).onerror();assert.match(h.node('loadStatus').textContent,/Background processing stopped/);assert.equal(h.node('download').disabled,true);
 });
 test('local file fallback uses the same conversion engine without workers',()=>{
@@ -65,10 +65,10 @@ test('copy and download retain complete output beyond both preview limits',async
   assert.ok(h.node('textPreview').textContent.length<31000);assert.match(h.node('textPreview').textContent,/Preview truncated/);await h.click('copy');
   assert.equal(h.context.copied.split('\r\n').length,501);assert.ok(h.context.copied.length>50000);
 });
-test('real worker entry point loads only local dependencies and returns errors without stale exports',()=>{
+test('real worker entry point loads only local dependencies and returns errors without stale exports',async()=>{
   const messages=[];const context={DataConverter:M,XLSX:X,self:{postMessage:message=>messages.push(message)},importScripts(...paths){assert.deepEqual(paths,['vendor/xlsx.full.min.js','model.js']);}};vm.createContext(context);vm.runInContext(fs.readFileSync('data-file-converter/converter-worker.js','utf8'),context);
-  context.self.onmessage({data:{id:1,action:'load',options:{text:'id\n001',format:'csv'}}});context.self.onmessage({data:{id:2,action:'select',options:{hasHeader:true}}});context.self.onmessage({data:{id:3,action:'export',options:{columns:[0],format:'md'}}});assert.match(messages.at(-1).result.text,/001/);
-  context.self.onmessage({data:{id:4,action:'select',options:{hasHeader:false}}});context.self.onmessage({data:{id:5,action:'export',options:{columns:[],format:'csv'}}});assert.match(messages.at(-1).error,/at least one/);
+  await context.self.onmessage({data:{id:1,action:'load',options:{text:'id\n001',format:'csv'}}});await context.self.onmessage({data:{id:2,action:'select',options:{hasHeader:true}}});await context.self.onmessage({data:{id:3,action:'export',options:{columns:[0],format:'md'}}});assert.match(messages.at(-1).result.text,/001/);
+  await context.self.onmessage({data:{id:4,action:'select',options:{hasHeader:false}}});await context.self.onmessage({data:{id:5,action:'export',options:{columns:[],format:'csv'}}});assert.match(messages.at(-1).error,/at least one/);
 });
 
 test('every text format copies the full selected output and downloads with its extension',async()=>{
@@ -81,4 +81,10 @@ test('every text format copies the full selected output and downloads with its e
     if(format==='md')assert.match(h.context.copied,/\| ---/);
     h.click('download');assert.ok(h.downloads.at(-1).endsWith('.'+format));
   }
+});
+
+test('clearing or invalidating a source also removes Parquet type-review field names',()=>{
+  const h=harness();h.load('private_identifier,name\n001,Asha');h.drain();assert.equal(h.node('typeFields').children.length,2);
+  h.click('reset');assert.equal(h.node('typeFields').children.length,0);
+  h.load('private_identifier\n001');h.drain();h.node('inputText').listeners.input();assert.equal(h.node('typeFields').children.length,0);
 });

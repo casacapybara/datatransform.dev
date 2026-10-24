@@ -17,7 +17,7 @@
     return JSON.stringify(v);
   }
   function cellText(v) { return v == null ? '' : typeof v === 'string' ? v : stringify(v); }
-  function jsonParse(text) {
+  function jsonParse(text, limits = LIMITS) {
     let i = 0, nodes = 0;
     function ws() { while (/[\t\n\r ]/.test(text[i] || '\0')) i++; }
     function fail(message) { throw new Error(`Invalid JSON near character ${i + 1}: ${message}`); }
@@ -32,7 +32,7 @@
       fail('unclosed string.');
     }
     function value(depth) {
-      if (depth > LIMITS.depth || ++nodes > LIMITS.nodes) throw new Error('JSON exceeds 40 nesting levels or 500,000 values.');
+      if (depth > limits.depth || ++nodes > limits.nodes) throw new Error(`JSON exceeds ${limits.depth} nesting levels or ${limits.nodes.toLocaleString()} values.`);
       ws(); const c = text[i];
       if (c === '"') return string();
       if (c === '{') {
@@ -55,7 +55,7 @@
         if (text[i] === ']') { i++; return result; }
         while (i < text.length) {
           result.push(value(depth + 1));
-          if (result.length > LIMITS.rows) throw new Error('A JSON array exceeds 20,000 items.');
+          if (result.length > limits.rows) throw new Error(`A JSON array exceeds ${limits.rows.toLocaleString()} items.`);
           ws(); if (text[i] === ']') { i++; return result; }
           if (text[i++] !== ',') fail('expected a comma.');
         }
@@ -106,20 +106,20 @@
     });
     return {names, warnings: changed ? ['Blank, duplicate or padded headers received unique, trimmed names. Review the field names.'] : []};
   }
-  function validateTable(names, rows) {
-    if (!names.length || names.length > LIMITS.columns) throw new Error('Choose data with between 1 and 100 fields.');
+  function validateTable(names, rows, limits = LIMITS) {
+    if (!names.length || names.length > limits.columns) throw new Error('Choose data with between 1 and 100 fields.');
     if (names.some(name => name.length > 200)) throw new Error('Output field names allow up to 200 characters, including nested JSON paths. Shorten the source headers or field names.');
-    if (rows.length > LIMITS.rows || (rows.length + 1) * names.length > LIMITS.cells) throw new Error('Selected data exceeds 20,000 rows or 500,000 cells including headers.');
+    if (rows.length > limits.rows || (rows.length + 1) * names.length > limits.cells) throw new Error(`Selected data exceeds ${limits.rows.toLocaleString()} rows or ${limits.cells.toLocaleString()} cells including headers.`);
     let chars = names.join('').length;
-    for (const row of rows) for (const v of row) { chars += cellText(v).length; if (chars > LIMITS.characters) throw new Error('Selected data exceeds 20 million characters.'); }
-    return {headers: names, rows};
+    for (const row of rows) for (const v of row) { chars += cellText(v).length; if (chars > limits.characters) throw new Error(`Selected data exceeds ${limits.characters.toLocaleString()} characters.`); }
+    return {headers: names, rows, limits};
   }
-  function matrix(records, hasHeader) {
+  function matrix(records, hasHeader, limits = LIMITS) {
     if (!records.length || !records[0].length) throw new Error('This selection is empty. Choose another sheet or record collection.');
     const width = records[0].length;
     if (records.some(r => r.length !== width)) throw new Error('Selected rows have different numbers of cells.');
     const h = headers(hasHeader ? records[0] : records[0].map((_, i) => `Column ${i + 1}`));
-    return {...validateTable(h.names, hasHeader ? records.slice(1) : records), warnings: h.warnings};
+    return {...validateTable(h.names, hasHeader ? records.slice(1) : records, limits), warnings: h.warnings};
   }
   function pathLabel(path) {
     return path.reduce((s, k) => /^[A-Za-z_$][\w$]*$/.test(k) ? s + (s ? '.' : '') + k : s + '[' + JSON.stringify(k) + ']', '');
@@ -137,22 +137,22 @@
     return {items: result, defaultPath: arrays === 1 ? JSON.stringify(result[Array.isArray(value) ? 0 : 1].path) : arrays === 0 ? '[]' : ''};
   }
   function at(v, path) { for (const k of path) { if (!object(v) || !own(v, k)) return undefined; v = v[k]; } return v; }
-  function jsonTable(value, hasHeader) {
+  function jsonTable(value, hasHeader, limits = LIMITS) {
     const records = Array.isArray(value) ? value : [value];
     if (!records.length) throw new Error('This JSON collection has no records. Choose another collection.');
-    if (records.every(Array.isArray)) return matrix(records, hasHeader);
+    if (records.every(Array.isArray)) return matrix(records, hasHeader, limits);
     if (records.every(object)) {
       const paths = [], seen = new Set();
       function fields(v, path) {
         if (object(v) && Object.keys(v).length) { Object.keys(v).forEach(k => fields(v[k], [...path, k])); return; }
         const id = JSON.stringify(path);
-        if (!seen.has(id)) { seen.add(id); paths.push(path); if (paths.length > LIMITS.columns) throw new Error('JSON expands to more than 100 fields. Choose a smaller collection.'); }
+        if (!seen.has(id)) { seen.add(id); paths.push(path); if (paths.length > limits.columns) throw new Error('JSON expands to more than 100 fields. Choose a smaller collection.'); }
       }
       records.forEach(r => Object.keys(r).forEach(k => fields(r[k], [k])));
       const names = paths.map(pathLabel);
-      return {...validateTable(names, records.map(r => paths.map(p => at(r, p)))), warnings: paths.some(p => p.length > 1) ? ['Nested object fields became separate columns. JSON output uses these column names as flat field names.'] : []};
+      return {...validateTable(names, records.map(r => paths.map(p => at(r, p))), limits), warnings: paths.some(p => p.length > 1) ? ['Nested object fields became separate columns. JSON output uses these column names as flat field names.'] : []};
     }
-    if (records.every(v => !object(v) && !Array.isArray(v))) return {...validateTable(['Value'], records.map(v => [v])), warnings: []};
+    if (records.every(v => !object(v) && !Array.isArray(v))) return {...validateTable(['Value'], records.map(v => [v]), limits), warnings: []};
     throw new Error('Choose records containing only objects, only arrays, or only scalar values. Mixed record shapes cannot form a table.');
   }
   function checkZip(bytes) {
@@ -203,6 +203,7 @@
     return v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\\/g, '\\\\').replace(/([`*_[\]{}()!#|~])/g, '\\$1').replace(/\r\n|\r|\n/g, '<br>');
   }
   function output(table, options, X) {
+    const limits = table.limits || LIMITS;
     const indices = options.columns;
     if (!indices?.length || new Set(indices).size !== indices.length || indices.some(i => !Number.isInteger(i) || i < 0 || i >= table.headers.length)) throw new Error('Include at least one field and choose each field once.');
     const names = indices.map(i => table.headers[i]), rows = table.rows.map(row => indices.map(i => row[i]));
@@ -211,7 +212,7 @@
     const previews = rows.slice(0, 100).map(row => row.map(v => protect(cellText(v), spreadsheet && options.protect)));
     const result = {headers: textNames, preview: previews, count: rows.length, warnings: [], extension: format, mime: 'text/plain;charset=utf-8'};
     let chars = 0;
-    function account(text) { chars += text.length + 2; if (chars > LIMITS.characters) throw new Error('Output exceeds 20 million characters. Include fewer fields or use a smaller input.'); return text; }
+    function account(text) { chars += text.length + 2; if (chars > limits.characters) throw new Error(`Output exceeds ${limits.characters.toLocaleString()} characters. Include fewer fields or use a smaller input.`); return text; }
     if (spreadsheet || format === 'txt') {
       const d = format === 'csv' ? ',' : '\t';
       const escape = v => { const s = protect(cellText(v), spreadsheet && options.protect); return s === '' || /["\r\n]/.test(s) || s.includes(d) ? '"' + s.replace(/"/g, '""') + '"' : s; };
@@ -287,6 +288,7 @@
         return meta;
       },
       select(options) {
+        if (source?.format === 'typed') return this.typedTable(table);
         table = null; if (!source) throw new Error('Load a file or pasted text first.');
         if (source.format === 'excel') table = excelTable(X, source.book, options.sheet, options);
         else if (source.records) table = matrix(source.records, options.hasHeader);
@@ -298,9 +300,11 @@
         }
         return {headers:table.headers, count:table.rows.length, warnings:table.warnings, preview:table.rows.slice(0,100).map(r => r.map(cellText))};
       },
+      typedTable(value) { table = value; source = {format:'typed'}; return {headers:table.headers, count:table.rows.length, warnings:table.warnings || [], preview:table.rows.slice(0,100).map(r => r.map(cellText)), types:table.types}; },
       snapshot() { if (!table) throw new Error('Choose valid source data first.'); return {headers:[...table.headers], rows:table.rows.map(row => row.map(cellText)), warnings:[...table.warnings]}; },
+      typedSnapshot() { if (!table) throw new Error('Choose valid source data first.'); return table; },
       export(options) { if (!table) throw new Error('Choose valid source data before exporting.'); return output(table, options, X); },
     };
   }
-  return {LIMITS, JsonNumber, jsonParse, stringify, cellText, delimited, matrix, jsonTable, collections, checkZip, output, engine};
+  return {LIMITS, validateTable, pathLabel, at, object, JsonNumber, jsonParse, stringify, cellText, delimited, matrix, jsonTable, collections, checkZip, output, engine};
 });

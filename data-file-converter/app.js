@@ -1,7 +1,7 @@
 (function () {
   'use strict';
   const M = window.DataConverter, $ = id => document.getElementById(id);
-  let worker = null, local = null, timer = null, debounce = null, generation = 0, request = 0, active = 0, meta = null, fields = [], selected = new Set(), latest = null, sourceName = 'converted-data';
+  let worker = null, local = null, timer = null, debounce = null, generation = 0, request = 0, active = 0, meta = null, fields = [], types = [], selected = new Set(), latest = null, sourceName = 'converted-data';
   function emit(name) { try { window.DataTransformEvents?.emit(name, {}, 'data-file-converter'); } catch {} }
   function node(tag, text, className) { const n = document.createElement(tag); if (text !== undefined) n.textContent = text; if (className) n.className = className; return n; }
   function status(id, text, error = false) { $(id).textContent = text; $(id).classList.toggle('error', error); }
@@ -12,7 +12,7 @@
   }
   function stop() { generation++; active = ++request; clearTimeout(timer); clearTimeout(debounce); worker?.terminate(); worker = local = null; }
   function clearSource() {
-    meta = null; fields = []; selected.clear(); $('selectionControls').disabled = true;
+    meta = null; fields = []; types = []; selected.clear(); $('typeFields').replaceChildren(); $('selectionControls').disabled = true;
     $('fields').replaceChildren(); $('worksheet').replaceChildren(); $('jsonCollection').replaceChildren(); $('fieldCount').textContent = '';
     $('sheetGroup').hidden = $('jsonGroup').hidden = true; $('headerGroup').hidden = false; notes('sourceWarnings'); clearOutput();
   }
@@ -38,7 +38,7 @@
     clearTimeout(timer); active = ++request; const id = active, g = generation;
     status('exportStatus', action === 'load' ? 'Reading data…' : 'Preparing the conversion…');
     if (worker) {
-      timer = setTimeout(() => { if (id !== active) return; stop(); clearSource(); status('loadStatus', 'Processing exceeded 20 seconds. Choose a smaller file and load it again.', true); status('exportStatus', 'No result available.', true); emit('conversion_failed'); }, 20000);
+      timer = setTimeout(() => { if (id !== active) return; stop(); clearSource(); status('loadStatus', 'Processing exceeded 120 seconds. Choose a smaller file and load it again.', true); status('exportStatus', 'No result available.', true); emit('conversion_failed'); }, 120000);
       worker.postMessage({id,action,options}, options.bytes ? [options.bytes] : []);
     } else if (local) {
       setTimeout(() => { if (id !== active || g !== generation) return; try { receive({id,action,result:local[action](options)}); } catch (err) { receive({id,action,error:err.message}); } }, 0);
@@ -51,7 +51,7 @@
     if (!meta) return;
     const json = ['json','jsonl'].includes(meta.format);
     const candidate = meta.collections.find(c => JSON.stringify(c.path) === $('jsonCollection').value);
-    $('headerGroup').hidden = json && !candidate?.matrix;
+    $('headerGroup').hidden = meta.format === 'parquet' || json && !candidate?.matrix;
     status('dataStatus', 'Reading the selected records…'); send('select', selectionOptions());
   }
   function formatHelp() {
@@ -60,20 +60,29 @@
       txt:'A plain text table with tab-separated columns. Cells containing tabs or line breaks are quoted. Downloads use .txt.',
       csv:'A comma-separated table for imports and spreadsheets. Values remain text.',
       tsv:'A tab-separated table. Tabs and line breaks inside cells are quoted.',
+      parquet:'A typed Parquet table with Snappy compression. Review column types below before downloading.',
       xlsx:'One worksheet of values. Text IDs stay text; JSON numbers use text cells to preserve their digits.',
       json:'An array of objects using the selected field names. Text stays text; JSON number digits are preserved.',
       jsonl:'One JSON object per line, using the selected field names.',
       md:'A Markdown table for a README, wiki or document. Pipes and Markdown syntax in cells are escaped.',
     }[format];
     $('protectGroup').hidden = !['csv','tsv'].includes(format);
-    $('sourcePanel').hidden = format === 'xlsx'; $('sourceTitle').textContent = 'View formatted output';
+    $('parquetTypes').hidden = format !== 'parquet'; $('sourcePanel').hidden = ['xlsx','parquet'].includes(format); $('sourceTitle').textContent = 'View formatted output';
     $('download').textContent = 'Download ' + (format === 'md' ? 'Markdown' : format === 'xlsx' ? 'Excel' : format.toUpperCase());
-    $('copy').hidden = format === 'xlsx';
+    $('copy').hidden = ['xlsx','parquet'].includes(format);
+  }
+  function renderTypes() {
+    $('typeFields').replaceChildren(...fields.map((name,i)=>{
+      const label=node('label',name), select=node('select'); select.className='control'; select.setAttribute('aria-label',name+' Parquet type');
+      for(const [value,text] of Object.entries({text:'Text',boolean:'Boolean',integer:'Integer (64-bit)',decimal:'Exact decimal',number:'Floating-point number',date:'Date',timestamp:'Timestamp'})){const option=node('option',text);option.value=value;select.append(option);}
+      select.value=types[i]||'text'; select.addEventListener('change',()=>{types[i]=select.value;scheduleConvert();});label.append(select);return label;
+    }));
   }
   function convert() {
     clearOutput(); formatHelp();
     if (!meta || !fields.length) return;
-    send('export', {columns:fields.map((_, i) => i).filter(i => selected.has(i)), format:$('outputFormat').value, protect:$('protect').checked});
+    if (local && $('outputFormat').value === 'parquet') { fail('export','Parquet requires the hosted site or a local web server.'); return; }
+    send('export', {columns:fields.map((_, i) => i).filter(i => selected.has(i)), format:$('outputFormat').value, types, protect:$('protect').checked});
   }
   function scheduleConvert() {
     if (!meta || !fields.length) { clearOutput(); formatHelp(); return; }
@@ -87,7 +96,7 @@
     if (message.action === 'load') {
       meta = r; $('selectionControls').disabled = false;
       $('sheetGroup').hidden = r.format !== 'excel'; $('jsonGroup').hidden = !['json','jsonl'].includes(r.format);
-      $('headerGroup').hidden = ['json','jsonl'].includes(r.format);
+      $('headerGroup').hidden = ['json','jsonl','parquet'].includes(r.format);
       $('worksheet').replaceChildren(...r.sheets.map(s => { const o = node('option', s.name + (s.hidden ? ' (hidden worksheet)' : '')); o.value = s.name; return o; }));
       if (r.sheets.length) $('worksheet').value = r.sheets[0].name;
       const candidates = r.collections.map(c => { const o = node('option', c.label); o.value = JSON.stringify(c.path); return o; });
@@ -95,7 +104,7 @@
       $('fieldsPanel').open = ['json','jsonl'].includes(r.format);
       status('loadStatus', `Loaded ${sourceName}. Input format: ${r.format === 'excel' ? 'Excel' : r.format.toUpperCase()}.`); emit('conversion_loaded'); chooseData();
     } else if (message.action === 'select') {
-      fields = r.headers; selected = new Set(fields.map((_, i) => i));
+      fields = r.headers; types = r.types || []; renderTypes(); selected = new Set(fields.map((_, i) => i));
       $('fields').replaceChildren(...fields.map((name, i) => {
         const label = node('label', undefined, 'check'), cb = node('input'); cb.type = 'checkbox'; cb.checked = true; cb.id = `field-${i}`;
         cb.addEventListener('change', () => { if (cb.checked) selected.add(i); else selected.delete(i); updateCount(); scheduleConvert(); }); label.append(cb, node('span', name)); return label;
@@ -123,6 +132,9 @@
     const file = $('inputFile').files[0]; $('inputFile').value = ''; if (!file) return;
     stop(); clearSource(); const g = generation; status('loadStatus', `Reading ${file.name}…`);
     status('dataStatus', 'Waiting for the source data.'); status('exportStatus', 'Reading the selected file…');
+    const isParquet = $('inputFormat').value === 'parquet' || $('inputFormat').value === 'auto' && /\.parquet$/i.test(file.name);
+    if (isParquet && location.protocol === 'file:') { fail('load','Parquet needs the hosted site or a local web server.'); return; }
+    if (isParquet) { if(file.size > 256*1024*1024){fail('load','Parquet files allow up to 256 MiB.');return;} startLoad({file,format:'parquet',name:file.name},file.name); return; }
     if (file.size > M.LIMITS.bytes) { fail('load', 'Input exceeds 5 MiB. Choose a smaller file.'); return; }
     try {
       const bytes = await file.arrayBuffer(); if (g !== generation) return;
