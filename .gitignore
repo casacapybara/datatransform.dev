@@ -26,3 +26,11 @@ private/
 # Operating system files
 .DS_Store
 Thumbs.db
+
+# Local design material and private documentation
+.interface-design/
+docs/
+previews/
+assets/hero-examples/
+assets/hero/generation.json
+assets/hero/data-factory-scene.png
