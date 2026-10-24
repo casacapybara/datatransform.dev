@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CSV to JSON converter | DataTransform</title>
+  <meta name="description" content="Convert CSV to JSON or a JavaScript const in your browser. Optionally split a column into an array, preview the output, and copy or download it. No uploads.">
+  <link rel="canonical" href="https://datatransform.dev/csv-to-json/">
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/brand/favicon-32.png">
+  <link rel="icon" type="image/svg+xml" href="../assets/brand/favicon.svg">
+  <script src="../assets/theme.js"></script>
+  <link rel="stylesheet" href="../assets/site.css">
+  <link rel="stylesheet" href="../csv-search-filter-transform/suite.css">
+  <link rel="stylesheet" href="../csv-to-json/converter.css">
+  <script src="../assets/events.js" defer></script>
+  <script src="../csv-search-filter-transform/model.js" defer></script>
+  <script src="../csv-to-json/model.js" defer></script>
+  <script src="../csv-to-json/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to tool</a>
+  <header class="site-header"><div class="header-inner"><a class="brand" href="../" aria-label="DataTransform home"><img class="brand-logo brand-logo-light" src="../assets/brand/logo-light.svg" alt="datatransform.dev" width="266" height="44"><img class="brand-logo brand-logo-dark" src="../assets/brand/logo-dark.svg" alt="datatransform.dev" width="266" height="44"></a><button id="theme-toggle" class="theme-toggle" type="button" role="switch" aria-checked="false"><span>Dark mode</span><span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span></button></div></header>
+  <main id="main">
+    <div class="page-heading"><h1>CSV to JSON converter</h1><p>Convert a CSV table to a JSON array or a JavaScript constant. Optionally split a comma-separated column into an array.</p><p class="privacy-note">Your data stays in this browser. Nothing is uploaded. <a href="../privacy/">Privacy details</a></p></div>
+    <noscript><p class="panel noscript">Enable JavaScript to convert CSV in your browser.</p></noscript>
+    <div class="converter-layout">
+      <section class="panel converter-input" aria-labelledby="inputHeading">
+        <div class="input-heading"><h2 id="inputHeading"><span class="step">1</span> Add your CSV</h2><button id="exampleBtn" class="button" type="button">Try an example</button></div>
+        <label for="csvFile">Choose a CSV file</label>
+        <input id="csvFile" class="control file-control" type="file" accept=".csv,text/csv">
+        <p id="fileHint" class="hint">UTF-8 CSV, up to 5 MiB. Selecting a file replaces the input and converts it.</p>
+        <label for="csvInput">Or paste CSV text</label>
+        <textarea id="csvInput" spellcheck="false" autocomplete="off" aria-describedby="inputHint" placeholder="id,name,fields&#10;001,Asha,&quot;name, date, status&quot;"></textarea>
+        <p id="inputHint" class="hint">Include a header row. After editing the text, select Convert.</p>
+        <div class="actions"><button id="convertBtn" class="button primary" type="button">Convert</button><button id="clearBtn" class="button" type="button">Clear all data</button></div>
+      </section>
+      <section class="panel converter-options" aria-labelledby="optionsHeading">
+        <h2 id="optionsHeading"><span class="step">2</span> Choose the output</h2>
+        <div class="form-grid">
+          <div><label for="outputMode">Output format</label><select id="outputMode" class="control"><option value="json">JSON array</option><option value="js">JavaScript const</option></select></div>
+          <div><label for="indentSize">Indentation</label><select id="indentSize" class="control"><option value="2">2 spaces</option><option value="4">4 spaces</option><option value="0">Minified</option></select></div>
+        </div>
+        <div id="arrayNameGroup" hidden><label for="arrayName">JavaScript variable name</label><input id="arrayName" class="control" type="text" value="data" maxlength="200" spellcheck="false" autocomplete="off" aria-describedby="variableHint"><p id="variableHint" class="hint">Invalid characters become underscores. Reserved names receive an underscore prefix.</p></div>
+        <label class="check"><input id="trimValues" type="checkbox" checked> Trim whitespace from values</label>
+        <p class="hint">Turn this off to preserve spaces and line breaks at the edges of values.</p>
+        <label class="check"><input id="splitFields" type="checkbox"> Split a column into an array</label>
+        <p class="hint">For example, <code>name, date, status</code> becomes <code>["name", "date", "status"]</code>.</p>
+        <label for="fieldsColumn">Column to split</label>
+        <input id="fieldsColumn" class="control" type="text" value="fields" maxlength="200" spellcheck="false" autocomplete="off" disabled aria-describedby="splitHint">
+        <p id="splitHint" class="hint">Match a header name, ignoring case. Commas inside the cell separate array items.</p>
+        <label class="check"><input id="omitEmpty" type="checkbox" checked disabled> Omit empty array items</label>
+      </section>
+      <section id="resultPanel" class="panel converter-result" aria-labelledby="resultHeading" aria-busy="false">
+        <div class="input-heading"><h2 id="resultHeading"><span class="step">3</span> Preview and export</h2><span id="stats" class="count">No result yet</span></div>
+        <div class="actions"><button id="downloadBtn" class="button primary" type="button" disabled>Download JSON</button><button id="copyBtn" class="button" type="button" disabled>Copy output</button></div>
+        <p id="status" class="message" role="status" aria-atomic="true">Choose a CSV file or paste text to begin.</p>
+        <ul id="errors" class="converter-notes" aria-label="Conversion notes"></ul>
+        <p id="previewHint" class="hint">Preview limited to 30,000 characters. Copy and download include the complete output.</p>
+        <pre id="output" tabindex="0" role="region" aria-label="Formatted output preview" aria-describedby="previewHint"></pre>
+      </section>
+    </div>
+    <div class="help-columns converter-help">
+      <section><h2>Convert CSV to JSON</h2><ol><li>Choose a CSV file or paste text containing a header row.</li><li>Choose JSON or JavaScript. Enable column splitting if a cell contains a comma-separated list.</li><li>Select Convert, review the output, then copy or download it. Changing an output setting updates the result automatically.</li></ol><p>Values stay strings, so IDs such as <code>001</code>, dates, numbers, and formula-like text retain their text. Column splitting is optional and off initially. Trimming is on initially. Headers always receive unique, trimmed names, with a note when changed.</p><p>Split values use literal commas as separators. For CSV input, quote a cell containing commas, for example <code>"name, date, status"</code>. Quotes inside that list do not create nested groups. If several headers match the split name when ignoring case, conversion stops so you can disambiguate them.</p><p>JavaScript output is a <code>const</code> declaration. Invalid variable names are adjusted with a visible note. Special property names such as <code>__proto__</code> remain own data properties.</p></section>
+      <section><h2>Privacy and limits</h2><p>Files, pasted text, settings, and results remain in browser memory. The tool does not upload them, save them in browser storage, or include them in URLs. Clear all data cancels processing and clears the inputs and output. Only your theme preference is saved. Copy writes to the clipboard only when selected. See <a href="../privacy/">privacy and analytics</a>.</p><p>Inputs allow 5 MiB of UTF-8 text, 20,000 data rows, 100 columns, and 500,000 cells including headers. Output allows 20 million characters. Quoted fields, doubled quotes, embedded line breaks, UTF-8 BOMs, and CR, LF, or CRLF record separators are supported. Blank physical lines are skipped. Quoted empty records and comma-only rows remain. Malformed quotes and uneven rows block export.</p><p>Hosted conversions use a local browser worker with a 20-second limit. Direct local-file use runs on the page and can briefly pause near the limits. Modern browsers with workers, TextEncoder, TextDecoder, File.arrayBuffer(), and Blob URLs are required. Clipboard access may require HTTPS or permission; downloads remain available if copying fails.</p></section>
+    </div>
+    <section class="related-tools" aria-labelledby="relatedHeading"><h2 id="relatedHeading">Need to do something else?</h2><div class="tool-grid"><a class="panel tool-card" href="../data-file-converter/"><h3>Convert another file format</h3><p>Read CSV, TSV, Excel, JSON, or JSON Lines and export a table in another format.</p><span class="open-tool">Convert a data file →</span></a><a class="panel tool-card" href="../csv-search-filter-transform/"><h3>Filter and edit CSV</h3><p>Search rows, change values, and arrange columns before exporting JSON or JavaScript.</p><span class="open-tool">Work with CSV →</span></a></div></section>
+  </main>
+  <footer class="site-footer"><div class="footer-inner"><span>Made with 💚 in London</span><nav aria-label="Footer"><a href="../about/">About</a><a href="../privacy/">Privacy</a><a href="../contact/">Contact</a><a href="../terms/">Terms</a><a href="https://github.com/casacapybara/datatransform.dev/tree/main/csv-to-json" rel="noreferrer">Source</a></nav></div></footer>
+</body>
+</html>

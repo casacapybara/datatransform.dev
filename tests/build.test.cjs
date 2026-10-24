@@ -7,7 +7,7 @@ test('deployment contains only public assets and all local page dependencies exi
   execFileSync(process.execPath, ['scripts/build.mjs'], { env: { ...process.env, SITE_PREVIEW: '1' } });
   function files(path) { return readdirSync(path, { withFileTypes: true }).flatMap(item => item.isDirectory() ? files(join(path, item.name)) : [join(path, item.name)]); }
   const built = files('dist');
-  assert.equal(built.length, 86);
+  assert.equal(built.length, 91);
   assert.ok(!built.some(file => /private|planning|LAUNCH_PLAN|tests|README|package|logo\.png/.test(file)));
   const home = readFileSync('dist/index.html', 'utf8');
   assert.match(home, /data-search-terms="[^"]*vlookup/);
@@ -37,6 +37,7 @@ test('deployment contains only public assets and all local page dependencies exi
   assert.match(readFileSync('dist/sitemap.xml', 'utf8'), /https:\/\/datatransform\.dev\/data-quality-checker\//);
   assert.match(readFileSync('dist/sitemap.xml', 'utf8'), /https:\/\/datatransform\.dev\/prepare-import\//);
   for (const slug of ['json-explorer','json-workbench']) assert.ok(readFileSync('dist/sitemap.xml','utf8').includes(`https://datatransform.dev/${slug}/`));
+  assert.match(readFileSync('dist/sitemap.xml', 'utf8'), /https:\/\/datatransform\.dev\/csv-to-json\//);
   const headers = readFileSync('dist/_headers', 'utf8');
   assert.match(headers, /connect-src https:\/\/datatransform\.dev\/cdn-cgi\/rum;/);
   assert.match(headers, /script-src 'self' https:\/\/static\.cloudflareinsights\.com;/);

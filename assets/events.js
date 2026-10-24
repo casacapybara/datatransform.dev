@@ -26,7 +26,7 @@
   // There is no network transport, queue, log, identifier, or input capture here.
   globalThis.DataTransformEvents = Object.freeze({
     emit(name, metadata = {}, tool = 'text-diff') {
-      if (!allowed.has(name) || !['text-diff', 'base64-decoder-encoder', 'bitwise-flag-decoder', 'list-comparison', 'csv-merge-join', 'data-file-converter', 'data-quality-checker', 'data-cleaner', 'summarise-reshape', 'prepare-import'].includes(tool)) return;
+      if (!allowed.has(name) || !['text-diff', 'base64-decoder-encoder', 'bitwise-flag-decoder', 'list-comparison', 'csv-merge-join', 'data-file-converter', 'csv-to-json', 'data-quality-checker', 'data-cleaner', 'summarise-reshape', 'prepare-import'].includes(tool)) return;
       const detail = { name, tool };
       for (const key of allowed.get(name)) {
         if (values[key].includes(metadata[key])) detail[key] = metadata[key];

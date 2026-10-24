@@ -117,6 +117,18 @@
       "table difference"
     ]
   },
+  "csv-to-json": {
+    "categories": [
+      "Tables",
+      "Conversion"
+    ],
+    "searchTerms": [
+      "CSV to JavaScript",
+      "JS constant",
+      "array of objects",
+      "delimited text to JSON"
+    ]
+  },
   "data-file-converter": {
     "categories": [
       "Files",
