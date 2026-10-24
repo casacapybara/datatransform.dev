@@ -35,7 +35,7 @@ function harness() {
     return nodes.get(id);
   };
   const cards = [...source.matchAll(/<a class="panel tool-card" href="(?:\.\/)?([^/]+)\/">([\s\S]*?)<\/a>/g)].map(([, slug, content]) => ({
-    hidden: false, dataset: { searchTerms: config[slug].searchTerms.join(' ') },
+    slug, hidden: false, dataset: { searchTerms: config[slug].searchTerms.join(' ') },
     querySelector(selector) { return { textContent: content.match(new RegExp(`<${selector}>(.*?)</${selector}>`))[1] }; },
     querySelectorAll() { return config[slug].categories.map(textContent => ({ textContent })); }
   }));
@@ -73,4 +73,25 @@ test('live search matches title, description, hidden synonyms and categories', (
   h.node('tool-search').value = 'vlookup';
   h.window.pageshow();
   assert.equal(h.count(), 1);
+});
+
+
+test('new tools and added workflows are discoverable through task-specific search terms', () => {
+  const h = harness();
+  for (const [query, slug] of [
+    ['regular expression', 'extract-from-text'],
+    ['email extractor', 'extract-from-text'],
+    ['capture groups', 'extract-from-text'],
+    ['labelled values', 'extract-from-text'],
+    ['PII', 'mask-sensitive-data'],
+    ['consistent placeholders', 'mask-sensitive-data'],
+    ['pseudonymize', 'mask-sensitive-data'],
+    ['ZIP', 'csv-search-filter-transform'],
+    ['one file per value', 'csv-search-filter-transform'],
+    ['fuzzy match', 'data-cleaner'],
+    ['standardise names', 'data-cleaner'],
+  ]) {
+    h.search(query);
+    assert.deepEqual(h.cards.filter(card => !card.hidden).map(card => card.slug), [slug], query);
+  }
 });

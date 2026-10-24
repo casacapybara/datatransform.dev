@@ -137,9 +137,30 @@
       return dateLabel(p,'ymd')+'T'+pad(p.h)+':'+pad(p.min)+':'+pad(p.sec)+'.'+pad(p.ms,3)+suffix;
     };
   }
+  function similarKey(value){return value.normalize('NFC').toLowerCase().replace(/[\p{P}\p{Z}\s]+/gu,'');}
+  function oneEdit(a,b){
+    const x=Array.from(a),y=Array.from(b);if(Math.abs(x.length-y.length)>1)return false;
+    let i=0,j=0,edits=0;while(i<x.length&&j<y.length){if(x[i]===y[j]){i++;j++;continue;}if(++edits>1)return false;if(x.length>=y.length)i++;if(y.length>=x.length)j++;}return edits+(i<x.length||j<y.length?1:0)<=1;
+  }
+  function suggest(table,column){
+    if(!Number.isInteger(column)||column<0||column>=table.headers.length)throw new Error('Select exactly one column to find similar values.');
+    const counts=new Map();for(const row of table.rows){const value=row[column];if(!value.trim())continue;if(value.length>200)throw new Error('Similar-value suggestions allow values up to 200 characters.');counts.set(value,(counts.get(value)||0)+1);if(counts.size>500)throw new Error('Similar-value suggestions allow up to 500 distinct nonblank values. Filter the table first.');}
+    const values=[...counts].map(([value,count])=>({value,count,key:similarKey(value)})).sort((a,b)=>b.count-a.count),used=new Set(),groups=[];
+    for(let i=0;i<values.length;i++){
+      if(used.has(i)||!values[i].key)continue;const anchor=values[i],matches=[i];
+      for(let j=i+1;j<values.length;j++)if(!used.has(j)&&values[j].key&&(anchor.key===values[j].key||(Array.from(anchor.key).length>=5&&Array.from(values[j].key).length>=5&&oneEdit(anchor.key,values[j].key))))matches.push(j);
+      if(matches.length>1){matches.forEach(n=>used.add(n));groups.push({column,preferred:anchor.value,values:matches.map(n=>({value:values[n].value,count:values[n].count}))});}
+    }
+    return groups;
+  }
   function prepare(recipe) {
-    if (!['text','date','number'].includes(recipe.family)) throw new Error('Choose text, dates and times, or numbers.');
+    if (!['text','date','number','similar'].includes(recipe.family)) throw new Error('Choose text, dates and times, or numbers.');
     if (!['replace','append'].includes(recipe.output) || !['block','keep'].includes(recipe.errors)) throw new Error('Choose valid output and error-handling settings.');
+    if(recipe.family==='similar'){
+      if(recipe.columns?.length!==1||!Array.isArray(recipe.replacements)||!recipe.replacements.length)throw new Error('Approve at least one suggested group for one selected column.');
+      const map=new Map();for(const group of recipe.replacements){if(!Array.isArray(group.values)||group.values.length<2||typeof group.preferred!=='string'||!group.preferred.trim()||group.preferred.length>200)throw new Error('Choose a nonblank preferred spelling up to 200 characters.');for(const value of group.values){if(typeof value!=='string'||map.has(value))throw new Error('Replacement groups overlap or contain invalid values.');map.set(value,group.preferred);}}
+      return value=>map.has(value)?map.get(value):value;
+    }
     if (recipe.family === 'text') {
       const o=recipe.text; if (!['none','lower','upper','title','camel','slug','snake'].includes(o.case) || typeof o.prefix!=='string' || typeof o.suffix!=='string' || o.prefix.length>1000 || o.suffix.length>1000) throw new Error('Text prefixes and suffixes allow 1,000 characters; choose a supported case option.');
       return value=>text(value,o);
@@ -165,7 +186,7 @@
       const result=[...source];
       columns.forEach((c,j)=>{
         const before=source[c];let after=before,problem='';
-        if (recipe.family!=='text'&&!before.trim()) blank++;
+        if (!['text','similar'].includes(recipe.family)&&!before.trim()) blank++;
         else {
           let conversion=cache.get(before);
           if (!conversion) { try { conversion={value:convert(before)}; } catch(e) { conversion={error:e.message}; } cache.set(before,conversion); }
@@ -195,9 +216,10 @@
     return {
       load(input){table=result=null;return importer.load(input);},
       select(options){table=result=null;const meta=importer.select(options);table=importer.snapshot();return {...meta,preview:table.rows.slice(0,5)};},
+      suggest(options){result=null;if(!table)throw new Error('Load data first.');return suggest(table,options.column);},
       run(recipe){result=null;if(!table)throw new Error('Choose valid source data first.');result=transform(table,recipe);return {summary:result.summary,preview:result.preview};},
       export(options){if(!result)throw new Error('Run the cleanup before exporting.');return exportResult(result,options);},
     };
   }
-  return {LIMITS,DATE_INPUTS,DATE_OUTPUTS,dateOnly,text,number,parseWall,dateConverter,prepare,transform,exportResult,session};
+  return {LIMITS,DATE_INPUTS,DATE_OUTPUTS,dateOnly,text,number,parseWall,dateConverter,prepare,transform,exportResult,session,suggest,similarKey,oneEdit};
 });

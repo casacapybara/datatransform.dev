@@ -310,5 +310,33 @@
     if (options.format === 'js') text = `const ${variableName(options.variable)} = ${text};`;
     return {text, extension: options.format === 'js' ? 'js' : 'json', mime: options.format === 'js' ? 'text/javascript;charset=utf-8' : 'application/json;charset=utf-8', preview: {headers: names, rows: data.slice(0, 100).map(obj => names.map(name => Array.isArray(obj[name]) ? JSON.stringify(obj[name]) : obj[name]))}};
   }
-  return {LIMITS, parse, terms, filter, transform, changeColumns, appendManual, deduplicate, sortRows, serialize, variableName};
+  function partition(items, options, headers) {
+    if (options.mode === 'rows') {
+      if (!Number.isInteger(options.rows) || options.rows < 1 || options.rows > LIMITS.rows) throw new Error('Rows per file must be a whole number from 1 to 20,000.');
+      if (Math.ceil(items.length / options.rows) > 200) throw new Error('Splitting allows up to 200 files. Increase rows per file.');
+      return Array.from({length:Math.ceil(items.length/options.rows)},(_,i)=>({label:`Part ${i+1}`,items:items.slice(i*options.rows,(i+1)*options.rows)}));
+    }
+    if (options.mode !== 'value' || !Number.isInteger(options.column) || options.column < 0 || options.column >= headers.length) throw new Error('Choose a column to split files by.');
+    const groups=new Map();
+    for(const item of items){const key=item.data[options.column];if(!groups.has(key)){if(groups.size>=200)throw new Error('Splitting allows up to 200 distinct values.');groups.set(key,[]);}groups.get(key).push(item);}
+    return [...groups].map(([label,items])=>({label:label===''?'(empty value)':JSON.stringify(label),items}));
+  }
+  // ZIP storage method: no compression or external runtime dependency.
+  function zip(files) {
+    const encoder=new TextEncoder(),parts=[],directory=[];let offset=0,total=0;
+    function crc(bytes){let c=0xffffffff;for(const b of bytes){c^=b;for(let k=0;k<8;k++)c=(c>>>1)^((c&1)?0xedb88320:0);}return (c^0xffffffff)>>>0;}
+    for(const file of files){
+      const name=encoder.encode(file.name),data=encoder.encode(file.text);total+=data.length;
+      if(total>40*1024*1024)throw new Error('ZIP output exceeds 40 MiB. Reduce the output.');
+      const checksum=crc(data),local=new Uint8Array(30+name.length),v=new DataView(local.buffer);
+      v.setUint32(0,0x04034b50,true);v.setUint16(4,20,true);v.setUint16(6,0x800,true);v.setUint16(12,33,true);v.setUint32(14,checksum,true);v.setUint32(18,data.length,true);v.setUint32(22,data.length,true);v.setUint16(26,name.length,true);local.set(name,30);
+      const central=new Uint8Array(46+name.length),d=new DataView(central.buffer);
+      d.setUint32(0,0x02014b50,true);d.setUint16(4,20,true);d.setUint16(6,20,true);d.setUint16(8,0x800,true);d.setUint16(14,33,true);d.setUint32(16,checksum,true);d.setUint32(20,data.length,true);d.setUint32(24,data.length,true);d.setUint16(28,name.length,true);d.setUint32(42,offset,true);central.set(name,46);
+      parts.push(local,data);directory.push(central);offset+=local.length+data.length;
+    }
+    const size=directory.reduce((n,p)=>n+p.length,0),end=new Uint8Array(22),v=new DataView(end.buffer);
+    v.setUint32(0,0x06054b50,true);v.setUint16(8,files.length,true);v.setUint16(10,files.length,true);v.setUint32(12,size,true);v.setUint32(16,offset,true);
+    const all=[...parts,...directory,end],bytes=new Uint8Array(offset+size+22);let at=0;for(const part of all){bytes.set(part,at);at+=part.length;}return bytes;
+  }
+  return {LIMITS, parse, terms, filter, transform, changeColumns, appendManual, deduplicate, sortRows, serialize, variableName, partition, zip};
 });

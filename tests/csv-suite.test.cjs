@@ -191,3 +191,18 @@ test('generated columns export in all formats with helper metadata and formula p
   if(format==='csv')assert.match(result.text,/'=SUM/);
  }
 });
+
+test('file partitions preserve row order, exact groups, metadata and enforce limits',()=>{
+ const items=M.parse('id,group\n001,A\n002,\n003,A\n004,a').rows;
+ assert.deepEqual(M.partition(items,{mode:'rows',rows:3},['id','group']).map(g=>g.items.length),[3,1]);
+ assert.deepEqual(M.partition(items,{mode:'value',column:1},['id','group']).map(g=>g.items.map(i=>i.data[0])),[['001','003'],['002'],['004']]);
+ assert.equal(M.partition([],{mode:'rows',rows:2},['id']).length,0);
+ assert.throws(()=>M.partition(items,{mode:'rows',rows:0},['id']),/whole number/);
+ assert.throws(()=>M.partition(Array(201).fill(items[0]),{mode:'rows',rows:1},['id']),/200 files/);
+ assert.throws(()=>M.partition(items,{mode:'value',column:2},['id','group']),/Choose a column/);
+});
+test('ZIP stores UTF-8 bytes, CRC and directory offsets for every part',()=>{
+ const files=[{name:'part-001.csv',text:'id,name\r\n001,é'},{name:'part-002.json',text:'[]'}],bytes=M.zip(files),v=new DataView(bytes.buffer),decoder=new TextDecoder();let at=0;
+ for(const f of files){assert.equal(v.getUint32(at,true),0x04034b50);const size=v.getUint32(at+18,true),n=v.getUint16(at+26,true);assert.equal(decoder.decode(bytes.slice(at+30,at+30+n)),f.name);assert.equal(decoder.decode(bytes.slice(at+30+n,at+30+n+size)),f.text);at+=30+n+size;}
+ assert.equal(v.getUint32(at,true),0x02014b50);assert.equal(v.getUint16(bytes.length-12,true),2);
+});

@@ -25,6 +25,39 @@
       "JSON diff"
     ]
   },
+  "extract-from-text": {
+    "categories": [
+      "Text",
+      "Extraction"
+    ],
+    "searchTerms": [
+      "regex",
+      "regular expression",
+      "email extractor",
+      "URL extractor",
+      "labelled values",
+      "labeled values",
+      "capture groups",
+      "extract IDs"
+    ]
+  },
+  "mask-sensitive-data": {
+    "categories": [
+      "Tables",
+      "Privacy"
+    ],
+    "searchTerms": [
+      "redact",
+      "redaction",
+      "anonymise",
+      "anonymize",
+      "pseudonymise",
+      "pseudonymize",
+      "PII",
+      "personal information",
+      "consistent placeholders"
+    ]
+  },
   "text-diff": {
     "categories": [
       "Text",
@@ -72,7 +105,12 @@
       "deduplicate",
       "remove duplicates",
       "split columns",
-      "combine columns"
+      "combine columns",
+      "split CSV",
+      "split files",
+      "row limit",
+      "ZIP",
+      "one file per value"
     ]
   },
   "list-comparison": {
@@ -172,7 +210,11 @@
       "date format",
       "timezone",
       "currency",
-      "similar spellings"
+      "similar spellings",
+      "similar values",
+      "fuzzy match",
+      "standardise names",
+      "standardize names"
     ]
   },
   "summarise-reshape": {

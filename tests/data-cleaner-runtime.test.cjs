@@ -65,3 +65,7 @@ test('every text format copies the full selected output and downloads with its e
   }
   h.click('reset');assert.equal(h.node('textPreview').textContent,'');
 });
+test('similar groups require explicit approval and edits clear results without losing reviewed groups',async()=>{
+ const h=harness();h.load('id,name\n001,Acme Ltd\n002,ACME LTD\n003,Other');h.drain();h.change('family','similar');h.node('column-1').checked=true;h.node('column-1').listeners.change();h.click('findSimilar');h.drain();assert.equal(h.node('similarGroups').children.length,1);assert.equal(h.node('download').disabled,true);
+ h.click('run');h.drain();assert.match(h.node('runStatus').textContent,/Approve/);h.node('approve-group-0').checked=true;h.node('approve-group-0').listeners.change();h.input('preferred-0','Acme');h.click('run');h.drain();await h.click('copy');assert.match(h.context.copied,/001,Acme\r\n002,Acme\r\n003,Other/);h.input('preferred-0','New spelling');assert.equal(h.node('download').disabled,true);assert.equal(h.node('similarGroups').children.length,1);h.change('outputMode','append');assert.equal(h.node('similarGroups').children.length,0);
+});

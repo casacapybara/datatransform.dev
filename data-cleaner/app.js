@@ -1,7 +1,7 @@
 (function(){
   'use strict';
   const M=window.DataCleaner,$=id=>document.getElementById(id),timers=new Map();
-  let worker=null,local=null,generation=0,request=0,active=0,meta=null,headers=[],selected=new Set(),ready=false,latest=null,sourceName='',demo=false;
+  let worker=null,local=null,generation=0,request=0,active=0,meta=null,headers=[],selected=new Set(),ready=false,latest=null,sourceName='',demo=false,groups=[];
   const values={family:'text',textCase:'none',textPrefix:'',textSuffix:'',dateInput:'ymd',dateOutput:'ymd',sourceZone:'UTC',targetZone:'UTC',inputDecimal:'.',inputGroup:',',outputDecimal:'.',outputGroup:'none',places:'preserve',removeCurrency:'',addCurrency:'',outputMode:'replace',errorPolicy:'block'};
   const checks={textTrim:true,textSpaces:false,textInvisible:false,textNfc:false,textLines:false,parentheses:true};
   function emit(name){try{window.DataTransformEvents?.emit(name,{},'data-cleaner');}catch{}}
@@ -10,16 +10,17 @@
   function stop(){generation++;active=++request;timers.forEach(clearTimeout);timers.clear();worker?.terminate();worker=local=null;}
   function clearExport(){latest=null; $('textPreview').textContent = '';$('download').disabled=$('copy').disabled=true;$('resultTable').replaceChildren(node('p','No output available.','empty'));}
   function clearResult(){ready=false;clearExport();$('summary').hidden=true;$('summary').replaceChildren();$('summaryNote').textContent='';$('changesPreview').replaceChildren(node('p','Run the current cleanup to see changes.','empty'));}
-  function clearSelection(){headers=[];selected=new Set();clearResult();$('columns').replaceChildren();$('selectedCount').textContent='0 selected';$('run').disabled=$('cleanupControls').disabled=true;$('sourceWarnings').replaceChildren();$('sourcePreview').replaceChildren(node('p','No data loaded.','empty'));}
+  function clearSuggestions(){groups=[];$('similarGroups').replaceChildren();status('similarStatus','Choose one column, then find similar values.');}
+  function clearSelection(){clearSuggestions();headers=[];selected=new Set();clearResult();$('columns').replaceChildren();$('selectedCount').textContent='0 selected';$('run').disabled=$('cleanupControls').disabled=true;$('sourceWarnings').replaceChildren();$('sourcePreview').replaceChildren(node('p','No data loaded.','empty'));}
   function clearSource(){meta=null;clearSelection();$('sourceControls').disabled=true;$('sheetGroup').hidden=$('jsonGroup').hidden=true;$('headerGroup').hidden=false;$('worksheet').replaceChildren();$('jsonCollection').replaceChildren();}
   function visibility(){
-    for(const family of ['text','date','number'])$(family+'Options').hidden=$('family').value!==family;
+    for(const family of ['text','date','number','similar'])$(family+'Options').hidden=$('family').value!==family;
     const input=$('dateInput').value,output=$('dateOutput').value,direct=M.dateOnly(input)&&M.dateOnly(output);
     $('sourceZoneGroup').hidden=direct||!(input.startsWith('local')||M.dateOnly(input));
     $('targetZoneGroup').hidden=direct||['seconds','milliseconds'].includes(output);
     $('dateHelp').textContent=direct?'Calendar dates keep the same date; time zones are not applied.':'Use UTC or a supported IANA time zone, such as Europe/London. A date without a clock time means midnight in the source zone.';
   }
-  function invalidate(){active=++request;clearResult();visibility();$('run').disabled=!headers.length||!selected.size;status('runStatus','Settings changed. Select Preview cleanup to run them.');status('exportStatus','Run the current cleanup before exporting.');}
+  function invalidate(keepSuggestions=false){if(keepSuggestions!==true)clearSuggestions();active=++request;clearResult();visibility();$('run').disabled=!headers.length||!selected.size;status('runStatus','Settings changed. Select Preview cleanup to run them.');status('exportStatus','Run the current cleanup before exporting.');}
   function tableView(id,names,rows,caption,empty='No rows in this view.'){
     const table=node('table'),head=node('thead'),body=node('tbody'),tr=node('tr');names.forEach(h=>{const th=node('th',h);th.scope='col';tr.append(th);});head.append(tr);rows.forEach(row=>{const tr=node('tr');row.forEach(v=>tr.append(node('td',v)));body.append(tr);});table.append(node('caption',caption,'sr-only'),head,body);$(id).replaceChildren(table);if(!rows.length)$(id).append(node('p',empty,'empty'));
   }
@@ -43,7 +44,7 @@
   function chooseData(){
     active=++request;clearSelection();if(!meta)return;const candidate=meta.collections.find(c=>JSON.stringify(c.path)===$('jsonCollection').value);$('headerGroup').hidden=['json','jsonl'].includes(meta.format)&&!candidate?.matrix;status('dataStatus','Reading the selected table…');status('runStatus','Waiting for source data.');status('exportStatus','No output yet.');send('select',{sheet:$('worksheet').value,path:$('jsonCollection').value,hasHeader:$('hasHeader').checked,excelValues:$('excelValues').value});
   }
-  function recipe(){return {family:$('family').value,columns:[...selected].sort((a,b)=>a-b),output:$('outputMode').value,errors:$('errorPolicy').value,
+  function recipe(){return {replacements:groups.filter(g=>g.approved).map(g=>({values:g.values.map(v=>v.value),preferred:g.preferred})),family:$('family').value,columns:[...selected].sort((a,b)=>a-b),output:$('outputMode').value,errors:$('errorPolicy').value,
     text:{trim:$('textTrim').checked,spaces:$('textSpaces').checked,invisible:$('textInvisible').checked,nfc:$('textNfc').checked,lineEndings:$('textLines').checked,case:$('textCase').value,prefix:$('textPrefix').value,suffix:$('textSuffix').value},
     date:{input:$('dateInput').value,output:$('dateOutput').value,sourceZone:$('sourceZone').value,targetZone:$('targetZone').value},
     number:{inputDecimal:$('inputDecimal').value,inputGroup:$('inputGroup').value,outputDecimal:$('outputDecimal').value,outputGroup:$('outputGroup').value,places:$('places').value,removeCurrency:$('removeCurrency').value,addCurrency:$('addCurrency').value,parentheses:$('parentheses').checked}};}
@@ -62,7 +63,9 @@
       headers=r.headers;$('cleanupControls').disabled=false;$('sourceWarnings').replaceChildren(...r.warnings.map(s=>node('li',s)));tableView('sourcePreview',headers,r.preview,'First 5 source rows');
       $('columns').replaceChildren(...headers.map((h,i)=>{const label=node('label',undefined,'check'),cb=node('input');cb.type='checkbox';cb.id=`column-${i}`;cb.addEventListener('change',()=>{if(cb.checked)selected.add(i);else selected.delete(i);updateSelected();invalidate();});label.append(cb,node('span',h));return label;}));
       status('dataStatus',`${r.count.toLocaleString()} ${r.count===1?'row':'rows'} · ${headers.length} columns. Choose the columns to clean.`);status('runStatus','Select columns and a cleanup type, then preview the changes.');
-      if(demo){demo=false;selected.add(1);$('column-1').checked=true;updateSelected();$('run').disabled=false;run();}
+      if(demo){demo=false;selected.add(1);$('column-1').checked=true;updateSelected();$('run').disabled=false;if($('family').value==='similar')$('findSimilar').click();else run();}
+    }else if(message.action==='suggest'){
+      groups=r;renderGroups();$('run').disabled=false;status('similarStatus',r.length?`${r.length} suggested ${r.length===1?'group':'groups'}. Select the groups to replace, then preview cleanup.`:'No similar groups found. Source values are unchanged.');
     }else if(message.action==='run'){
       ready=true;$('run').disabled=false;$('summary').hidden=false;const s=r.summary;
       $('summary').replaceChildren(...[[s.rows,'Source rows'],[s.changed,'Changed cells'],[s.unchanged,'Unchanged cells'],[s.errors,'Values needing attention']].map(([n,label])=>{const card=node('div');card.append(node('strong',n.toLocaleString()),node('span',label));return card;}));
@@ -75,6 +78,15 @@
       latest={...r,view:$('reportView').value};$('textPreview').textContent = r.text.slice(0, 30000) + (r.text.length > 30000 ? '\n… Preview truncated; download or copy for the complete output.' : ''); $('download').disabled=$('copy').disabled=false;status('exportStatus',`Ready to download ${r.count.toLocaleString()} ${r.count===1?'row':'rows'}.`);
     }
   }
+  function renderGroups(){
+    $('similarGroups').replaceChildren(...groups.map((group,i)=>{
+      const card=node('div',undefined,'similar-group'),label=node('label',undefined,'check'),cb=node('input');cb.type='checkbox';cb.id=`approve-group-${i}`;
+      cb.addEventListener('change',()=>{group.approved=cb.checked;invalidate(true);});label.append(cb,node('span',`Replace group ${i+1}`));
+      const list=node('ul');group.values.forEach(v=>list.append(node('li',`${JSON.stringify(v.value)} · ${v.count} ${v.count===1?'row':'rows'}`)));
+      const input=node('input',undefined,'control'),name=node('label',`Preferred spelling for group ${i+1}`);input.id=`preferred-${i}`;input.maxLength=200;input.value=group.preferred;name.htmlFor=input.id;input.addEventListener('input',()=>{group.preferred=input.value;invalidate(true);});card.append(label,list,name,input);return card;
+    }));
+  }
+  $('findSimilar').addEventListener('click',()=>{active=++request;clearResult();clearSuggestions();if(selected.size!==1){status('similarStatus','Select exactly one column to find similar values.',true);return;}status('similarStatus','Finding similar values…');send('suggest',{column:[...selected][0]});});
   function resetOptions(){Object.entries(values).forEach(([id,value])=>{$(id).value=value;});Object.entries(checks).forEach(([id,value])=>{$(id).checked=value;});visibility();}
   function startLoad(input,name,isDemo=false){stop();clearSource();demo=isDemo;sourceName=name;status('loadStatus','Loading replaces the previous source…');status('dataStatus','Reading source data…');status('runStatus','Waiting for source data.');status('exportStatus','No output yet.');try{backend();send('load',input);}catch(e){fail('load',e.message);}}
   $('inputFile').addEventListener('change',async()=>{
@@ -92,6 +104,7 @@
     const family=$('family').value;resetOptions();$('family').value=family;$('inputFormat').value='csv';$('hasHeader').checked=true;let text;
     if(family==='date'){text='id,when\n001,01/02/2026\n002,31/12/2026\n003,29/02/2026';$('dateInput').value='dmy';}
     else if(family==='number'){text='id,amount\n001,"(£1,234.505)"\n002,"£9,007,199,254,740,993.005"\n003,"£12,34"';$('removeCurrency').value='£';$('places').value='2';}
+    else if(family==='similar'){text='id,company\n001,Northstar Ltd\n002,Northstar Ltd\n003,NORTHSTAR LTD\n004,Northstar Ld\n005,Northstar Ltd.\n006,Other Company';}
     else{text='id,name\n001," REF-  ALICE\u00a0  SMITH "\n002,"REF-Bob\u200b  JONES"';$('textPrefix').value='REF-';$('textCase').value='lower';$('textSpaces').checked=$('textInvisible').checked=true;}
     visibility();$('inputText').value=text;startLoad({text,format:'csv'},`${family} example`,true);
   });

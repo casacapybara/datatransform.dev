@@ -82,3 +82,16 @@ test('camel, slug and snake case handle acronym boundaries, punctuation, apostro
   assert.equal(convert(input,'camel'),camel);assert.equal(convert(input,'slug'),slug);assert.equal(convert(input,'snake'),slug.replaceAll('-','_'));
  }
 });
+test('similar suggestions count exact values, avoid chained matches, ignore blanks and bound work',()=>{
+ const table={headers:['name'],rows:['abcde','abcde','abcdf','abccf','ABC DE.','','x','X'].map(x=>[x])};
+ const groups=M.suggest(table,0);assert.equal(groups[0].preferred,'abcde');assert.equal(groups[0].values[0].count,2);assert.ok(groups[0].values.some(v=>v.value==='abcdf'));assert.ok(!groups[0].values.some(v=>v.value==='abccf'));assert.equal(groups[1].values.length,2);
+ assert.throws(()=>M.suggest({headers:['a'],rows:Array.from({length:501},(_,i)=>[String(i)])},0),/500 distinct/);
+ assert.throws(()=>M.suggest({headers:['a'],rows:[['a'.repeat(201)]]},0),/200 characters/);
+ assert.equal(M.oneEdit('éclair','éclai'),true);assert.equal(M.oneEdit('Northstar Ltd','Northstar Ldt'),false);
+});
+test('approved similarity replacements retain all rows and never alter source or unapproved values',()=>{
+ const table={headers:['id','name'],rows:[['001','ACME LTD'],['002','Acme Ltd'],['003','Other'],['004','']]};
+ const r=M.transform(table,recipe('similar',{replacements:[{values:['ACME LTD','Acme Ltd'],preferred:'Acme Ltd'}]}));assert.equal(r.table.rows.length,4);assert.deepEqual(r.table.rows.map(r=>r[1]),['Acme Ltd','Acme Ltd','Other','']);assert.equal(table.rows[0][1],'ACME LTD');
+ assert.throws(()=>M.transform(table,recipe('similar',{replacements:[]})),/Approve/);
+ assert.throws(()=>M.transform(table,recipe('similar',{replacements:[{values:['a','b'],preferred:''}]})),/nonblank/);
+});

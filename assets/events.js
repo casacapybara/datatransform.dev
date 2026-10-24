@@ -1,6 +1,8 @@
 (() => {
   'use strict';
   const allowed = new Map([
+    ...['extract_loaded', 'extract_completed', 'extract_failed', 'extract_cleared', 'extract_copied', 'extract_downloaded'].map(name => [name, []]),
+    ...['mask_loaded', 'mask_completed', 'mask_failed', 'mask_cleared', 'mask_copied', 'mask_downloaded'].map(name => [name, []]),
     ...['import_loaded', 'import_completed', 'import_failed', 'import_cleared', 'import_copied', 'import_downloaded'].map(name => [name, []]),
     ...['reshape_loaded', 'reshape_completed', 'reshape_failed', 'reshape_cleared', 'reshape_copied', 'reshape_downloaded'].map(name => [name, []]),
     ...['cleanup_loaded', 'cleanup_completed', 'cleanup_failed', 'cleanup_cleared', 'cleanup_copied', 'cleanup_downloaded'].map(name => [name, []]),
@@ -26,7 +28,7 @@
   // There is no network transport, queue, log, identifier, or input capture here.
   globalThis.DataTransformEvents = Object.freeze({
     emit(name, metadata = {}, tool = 'text-diff') {
-      if (!allowed.has(name) || !['text-diff', 'base64-decoder-encoder', 'bitwise-flag-decoder', 'list-comparison', 'csv-merge-join', 'data-file-converter', 'csv-to-json', 'data-quality-checker', 'data-cleaner', 'summarise-reshape', 'prepare-import'].includes(tool)) return;
+      if (!allowed.has(name) || !['text-diff', 'base64-decoder-encoder', 'bitwise-flag-decoder', 'list-comparison', 'csv-merge-join', 'data-file-converter', 'csv-to-json', 'data-quality-checker', 'data-cleaner', 'summarise-reshape', 'prepare-import', 'mask-sensitive-data', 'extract-from-text'].includes(tool)) return;
       const detail = { name, tool };
       for (const key of allowed.get(name)) {
         if (values[key].includes(metadata[key])) detail[key] = metadata[key];

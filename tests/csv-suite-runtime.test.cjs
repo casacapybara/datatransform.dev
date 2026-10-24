@@ -116,3 +116,7 @@ test('example replaces edited data and cancels pending file reads', async () => 
   assert.equal(h.node('download').disabled, false);
   h.click('reset'); assert.equal(h.node('download').disabled, true);
 });
+test('split ZIP follows transformed output and invalid settings clear stale parts',()=>{
+ const h=harness();h.load('id,group\n001,A\n002,B\n003,A');h.edit('fileMode','value');h.edit('fileColumn','1');assert.equal(h.node('fileList').children.length,2);assert.equal(h.node('downloadZip').disabled,false);h.click('downloadZip');assert.equal(h.downloads.at(-1),'csv-suite-parts.zip');
+ h.edit('fileMode','rows');h.edit('fileRows','0');assert.equal(h.node('downloadZip').disabled,true);h.click('downloadZip');assert.equal(h.downloads.length,1);h.edit('fileRows','2');assert.equal(h.node('fileList').children.length,2);h.click('reset');assert.equal(h.node('fileList').children.length,0);
+});

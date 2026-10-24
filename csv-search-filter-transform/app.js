@@ -1,7 +1,7 @@
 (function () {
   'use strict';
   const M = window.CsvSuite, $ = id => document.getElementById(id);
-  let dataset = null, changes = [], columns = [], latest = null, loadVersion = 0, manualRows = [], sortRules = [], outputHeaders = [], combineColumns = [];
+  let dataset = null, changes = [], columns = [], latest = null, splitFiles = [], loadVersion = 0, manualRows = [], sortRules = [], outputHeaders = [], combineColumns = [];
   function node(tag, text, className) {
     const el = document.createElement(tag);
     if (text !== undefined) el.textContent = text;
@@ -20,7 +20,7 @@
     }));
   }
   function clearResult() {
-    latest = null; $('copy').disabled = true; $('download').disabled = true;
+    splitFiles = []; $('downloadZip').disabled=true; $('fileList').replaceChildren(); latest = null; $('copy').disabled = true; $('download').disabled = true;
     $('textPreview').textContent = '';
     $('tablePreview').replaceChildren(node('p', 'No output available.', 'empty'));
     $('outputCount').textContent = '0 rows';
@@ -46,6 +46,7 @@
     $('repeats').value = 'once'; $('caseSensitive').checked = false; $('trimCells').checked = true;
     $('outputFormat').value = 'csv'; $('helpers').checked = false; $('protect').checked = true;
     $('indent').value = '2'; $('variable').value = 'data'; $('trimValues').checked = true;
+    $('fileMode').value='none'; $('fileRows').value='1000'; $('fileColumn').replaceChildren(); if(dataset) options($('fileColumn')); $('fileColumn').value='0';
     $('splitFields').checked = false; $('omitEmpty').checked = true;
     resetColumnTools(); updateVisibility();
   }
@@ -135,6 +136,7 @@
   });
   $('reset').addEventListener('click', reset);
   function updateVisibility() {
+    $('fileRowsGroup').hidden=$('fileMode').value!=='rows'; $('fileColumnGroup').hidden=$('fileMode').value!=='value';
     const columnMode=$('columnMode').value;
     $('columnSeparatorGroup').hidden=$('columnWhitespace').hidden=columnMode==='none';
     $('columnCustomGroup').hidden=columnMode==='none'||$('columnSeparator').value!=='custom';
@@ -303,10 +305,18 @@
       try { shaped=M.changeColumns(dataset.headers,items,columnSettings()); }
       catch(err) { status('columnStatus',err.message,true);throw err; }
       items=shaped.items;syncOutputColumns(shaped.headers);
+      const prior=$('fileColumn').value; $('fileColumn').replaceChildren(...outputHeaders.map((h,i)=>{const o=node('option',h);o.value=String(i);return o;})); $('fileColumn').value=Number(prior)<outputHeaders.length?prior:'0';
       const added=shaped.headers.length-dataset.headers.length;
       status('columnStatus',added?`${added} new column${added===1?'':'s'} added. Original columns are retained; choose output columns below.`:'Original columns are unchanged.');
       const projection = columns.filter(c => c.included).map(c => ({index: c.index, name: c.name}));
-      const result = M.serialize(outputHeaders, items, {projection, format: $('outputFormat').value, helpers: $('helpers').checked, protect: $('protect').checked, trimValues: $('trimValues').checked, split: $('splitFields').checked, splitColumn: $('splitColumn').value, omitEmpty: $('omitEmpty').checked, indent: $('indent').value, variable: $('variable').value});
+      const exportOptions = {projection, format: $('outputFormat').value, helpers: $('helpers').checked, protect: $('protect').checked, trimValues: $('trimValues').checked, split: $('splitFields').checked, splitColumn: $('splitColumn').value, omitEmpty: $('omitEmpty').checked, indent: $('indent').value, variable: $('variable').value};
+      const result=M.serialize(outputHeaders,items,exportOptions);
+      if($('fileMode').value!=='none'){
+        const groups=M.partition(items,{mode:$('fileMode').value,rows:Number($('fileRows').value),column:Number($('fileColumn').value)},outputHeaders);
+        splitFiles=groups.map((g,i)=>({name:`part-${String(i+1).padStart(3,'0')}.${result.extension}`,text:M.serialize(outputHeaders,g.items,exportOptions).text,label:g.label,count:g.items.length}));
+        $('fileList').replaceChildren(...splitFiles.map(f=>node('li',`${f.name} · ${f.count} ${f.count===1?'row':'rows'} · ${f.label.slice(0,300)}${f.label.length>300?'…':''}`)));
+        $('downloadZip').disabled=!splitFiles.length;
+      }
       latest = result;
       $('download').disabled = false; $('copy').disabled = false;
       $('outputCount').textContent = `${items.length.toLocaleString()} row${items.length === 1 ? '' : 's'} · ${projection.length + ($('helpers').checked ? 3 : 0)} columns`;
@@ -324,7 +334,7 @@
     table.append(caption, head, body); $('tablePreview').replaceChildren(table);
     if (!items.length) $('tablePreview').append(node('p', 'No rows match your filters.', 'empty'));
   }
-  for (const id of ['cellPolicy', 'removeDuplicates', 'duplicateScope', 'duplicateTrim', 'duplicateIgnoreCase', 'criteria', 'caseSensitive', 'trimCells', 'matchMode', 'scope', 'repeats', 'outputFormat', 'helpers', 'protect', 'indent', 'variable', 'trimValues', 'splitFields', 'splitColumn', 'omitEmpty']) $(id).addEventListener('input', refresh);
+  for (const id of ['fileMode','fileRows','fileColumn','cellPolicy', 'removeDuplicates', 'duplicateScope', 'duplicateTrim', 'duplicateIgnoreCase', 'criteria', 'caseSensitive', 'trimCells', 'matchMode', 'scope', 'repeats', 'outputFormat', 'helpers', 'protect', 'indent', 'variable', 'trimValues', 'splitFields', 'splitColumn', 'omitEmpty']) $(id).addEventListener('input', refresh);
   for(const id of ['columnMode','columnSeparator','columnSplitSource','columnSkipEmpty','columnTrim']) $(id).addEventListener('change',refresh);
   for(const id of ['columnCustom','columnSplitCount','columnSplitName','columnCombineName']) $(id).addEventListener('input',refresh);
   $('copy').addEventListener('click', async () => {
@@ -341,5 +351,6 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     status('exportStatus', 'Download started.');
   });
+  $('downloadZip').addEventListener('click',()=>{if(!latest||!splitFiles.length)return;try{const url=URL.createObjectURL(new Blob([M.zip(splitFiles)],{type:'application/zip'})),a=node('a');a.href=url;a.download='csv-suite-parts.zip';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);status('exportStatus','ZIP download started.');}catch(e){status('exportStatus',e.message,true);}});
   reset();
 })();
