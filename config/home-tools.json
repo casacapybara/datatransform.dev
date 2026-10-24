@@ -1,0 +1,196 @@
+{
+  "json-explorer": {
+    "categories": [
+      "JSON",
+      "Search"
+    ],
+    "searchTerms": [
+      "nested records",
+      "flatten",
+      "select fields",
+      "JSON to CSV"
+    ]
+  },
+  "json-workbench": {
+    "categories": [
+      "JSON",
+      "Validation"
+    ],
+    "searchTerms": [
+      "JSONPath",
+      "JSON schema",
+      "pretty print",
+      "format JSON",
+      "minify",
+      "JSON diff"
+    ]
+  },
+  "text-diff": {
+    "categories": [
+      "Text",
+      "Comparison"
+    ],
+    "searchTerms": [
+      "difference",
+      "changes",
+      "before and after",
+      "line comparison"
+    ]
+  },
+  "base64-decoder-encoder": {
+    "categories": [
+      "Encoding"
+    ],
+    "searchTerms": [
+      "b64",
+      "binary to text",
+      "data URI",
+      "data URL",
+      "image to base64"
+    ]
+  },
+  "bitwise-flag-decoder": {
+    "categories": [
+      "Encoding"
+    ],
+    "searchTerms": [
+      "bit mask",
+      "bit flags",
+      "binary flags",
+      "permissions",
+      "hexadecimal"
+    ]
+  },
+  "csv-search-filter-transform": {
+    "categories": [
+      "Tables",
+      "Search"
+    ],
+    "searchTerms": [
+      "CSV editor",
+      "find rows",
+      "deduplicate",
+      "remove duplicates",
+      "split columns",
+      "combine columns"
+    ]
+  },
+  "list-comparison": {
+    "categories": [
+      "Lists",
+      "Comparison"
+    ],
+    "searchTerms": [
+      "intersection",
+      "union",
+      "set difference",
+      "duplicates",
+      "unique items",
+      "common items"
+    ]
+  },
+  "csv-merge-join": {
+    "categories": [
+      "Tables",
+      "Combining"
+    ],
+    "searchTerms": [
+      "concatenate",
+      "append",
+      "vlookup",
+      "lookup",
+      "inner join",
+      "left join",
+      "combine CSV"
+    ]
+  },
+  "compare-tables": {
+    "categories": [
+      "Tables",
+      "Comparison"
+    ],
+    "searchTerms": [
+      "CSV diff",
+      "reconcile",
+      "reconciliation",
+      "changed rows",
+      "table difference"
+    ]
+  },
+  "data-file-converter": {
+    "categories": [
+      "Files",
+      "Conversion"
+    ],
+    "searchTerms": [
+      "xlsx",
+      "xls",
+      "jsonl",
+      "ndjson",
+      "spreadsheet",
+      "CSV to Excel",
+      "Excel to CSV",
+      "Markdown table"
+    ]
+  },
+  "data-quality-checker": {
+    "categories": [
+      "Tables",
+      "Validation"
+    ],
+    "searchTerms": [
+      "audit",
+      "null",
+      "blank cells",
+      "duplicate keys",
+      "data profiling",
+      "invalid values"
+    ]
+  },
+  "data-cleaner": {
+    "categories": [
+      "Tables",
+      "Cleaning"
+    ],
+    "searchTerms": [
+      "normalize",
+      "normalise",
+      "standardize",
+      "trim whitespace",
+      "date format",
+      "timezone",
+      "currency",
+      "similar spellings"
+    ]
+  },
+  "summarise-reshape": {
+    "categories": [
+      "Tables",
+      "Reshaping"
+    ],
+    "searchTerms": [
+      "summarize",
+      "aggregate",
+      "group by",
+      "sum",
+      "unpivot",
+      "wide to long",
+      "long to wide",
+      "explode"
+    ]
+  },
+  "prepare-import": {
+    "categories": [
+      "Tables",
+      "Import"
+    ],
+    "searchTerms": [
+      "column mapping",
+      "field mapping",
+      "migration",
+      "destination schema",
+      "required fields",
+      "default values"
+    ]
+  }
+}

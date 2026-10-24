@@ -7,8 +7,16 @@ test('deployment contains only public assets and all local page dependencies exi
   execFileSync(process.execPath, ['scripts/build.mjs'], { env: { ...process.env, SITE_PREVIEW: '1' } });
   function files(path) { return readdirSync(path, { withFileTypes: true }).flatMap(item => item.isDirectory() ? files(join(path, item.name)) : [join(path, item.name)]); }
   const built = files('dist');
-  assert.equal(built.length, 84);
+  assert.equal(built.length, 86);
   assert.ok(!built.some(file => /private|planning|LAUNCH_PLAN|tests|README|package|logo\.png/.test(file)));
+  const home = readFileSync('dist/index.html', 'utf8');
+  assert.match(home, /data-search-terms="[^"]*vlookup/);
+  assert.match(home, /class="tool-categories"/);
+  assert.ok(!existsSync('dist/config/home-tools.json'));
+  for (const slug of ['json-explorer', 'text-diff', 'data-cleaner']) {
+    const tool = readFileSync(`dist/${slug}/index.html`, 'utf8');
+    assert.doesNotMatch(tool, /home-search|tool-search-controls|tool-categories|data-search-terms/);
+  }
   const root = resolve('dist');
   for (const file of built.filter(file => file.endsWith('.html'))) {
     const html = readFileSync(file, 'utf8');
